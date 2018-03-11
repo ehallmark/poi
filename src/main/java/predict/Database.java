@@ -126,7 +126,8 @@ public class Database {
 
 
         Map<String,Collection<String>> touristAttractionsToLocationsMap = Collections.synchronizedMap(new HashMap<>());
-        Map<String,Collection<String>> glacierToLocationMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> glacierToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> lighthouseToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> hospitalToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> schoolToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> museumToLocationsMap = Collections.synchronizedMap(new HashMap<>());
@@ -180,16 +181,17 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Municipalities for", "Municipalities of", "Municipalities in"),municipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Former municipalities of","Former municipalities for", "Former municipalities in"),formerMunicipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Nature reserves of","Nature reserves for","Nature reserves in"),natureReserveToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Neighborhoods in","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Neighborhoods in","Neighbourhoords in","Neighbourhoods of","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Waterfalls of","Waterfalls in"),waterfallToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Dams in","Dams of"),damLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Bodies of water of"),bodyOfWaterToLocationsMap);
-               extractLocationCategories(poi,Collections.singletonList("Glaciers of"),glacierToLocationMap);
+               extractLocationCategories(poi,Collections.singletonList("Glaciers of"),glacierToLocationsMap);
+               extractLocationCategories(poi,Collections.singletonList("Lighthouses of"),lighthouseToLocationsMap);
            }
         });
         database.getPois().parallelStream().forEach(poi->{
             if(poi.getCategories()!=null) {
-                if(Arrays.asList(glacierToLocationMap,bodyOfWaterToLocationsMap,neihborhoodToLocationsMap,waterfallToLocationsMap,damLocationsMap,natureReserveToLocationsMap,churchToLocationsMap,nationalRegisterPlaceToLocationsMap,museumToLocationsMap,schoolToLocationsMap,historicLandmarksToLocationsMap,unincorporatedCommunityToLocationsMap,airportsToLocationsMap,townshipToLocationsMap,nationalRegisterHouseToLocationsMap,parksToLocationsMap,mountainToLocationsMap,railwayToLocationsMap,cityToLocationsMap,buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,provinceToLocationsMap,villageToLocationsMap,districtToLocationsMap,populatedPlaceToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap).stream()
+                if(Arrays.asList(lighthouseToLocationsMap,glacierToLocationsMap,bodyOfWaterToLocationsMap,neihborhoodToLocationsMap,waterfallToLocationsMap,damLocationsMap,natureReserveToLocationsMap,churchToLocationsMap,nationalRegisterPlaceToLocationsMap,museumToLocationsMap,schoolToLocationsMap,historicLandmarksToLocationsMap,unincorporatedCommunityToLocationsMap,airportsToLocationsMap,townshipToLocationsMap,nationalRegisterHouseToLocationsMap,parksToLocationsMap,mountainToLocationsMap,railwayToLocationsMap,cityToLocationsMap,buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,provinceToLocationsMap,villageToLocationsMap,districtToLocationsMap,populatedPlaceToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap).stream()
                         .noneMatch(map->map.containsKey(poi.getTitle()))) {
                     System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
                 }
@@ -199,7 +201,8 @@ public class Database {
         System.out.println("Num neighborhoods: "+neihborhoodToLocationsMap.size());
         System.out.println("Num waterfalls: "+waterfallToLocationsMap.size());
         System.out.println("Num dams: "+damLocationsMap.size());
-        System.out.println("Num glaciers: "+glacierToLocationMap.size());
+        System.out.println("Num glaciers: "+glacierToLocationsMap.size());
+        System.out.println("Num lighthouses: "+lighthouseToLocationsMap.size());
         System.out.println("Num bodies of water: "+bodyOfWaterToLocationsMap.size());
         System.out.println("Num historic landmarks: "+historicLandmarksToLocationsMap.size());
         System.out.println("Num national places: "+nationalRegisterPlaceToLocationsMap.size());
