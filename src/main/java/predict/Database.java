@@ -180,7 +180,7 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Municipalities for", "Municipalities of", "Municipalities in"),municipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Former municipalities of","Former municipalities for", "Former municipalities in"),formerMunicipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Nature reserves of","Nature reserves for","Nature reserves in"),natureReserveToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Neighboods in","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Neighborhoods in","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Waterfalls of","Waterfalls in"),waterfallToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Dams in","Dams of"),damLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Bodies of water of"),bodyOfWaterToLocationsMap);
