@@ -150,7 +150,6 @@ public class Database {
         Map<String,Collection<String>> populatedPlaceToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> countyToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> districtToLocationsMap = Collections.synchronizedMap(new HashMap<>());
-        Map<String,Collection<String>> villageToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> municipalityToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> formerMunicipalityToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> provinceToLocationsMap = Collections.synchronizedMap(new HashMap<>());
@@ -169,7 +168,7 @@ public class Database {
         database.getPois().parallelStream().forEach(poi->{
            if(poi.getCategories()!=null) {
                extractLocationCategories(poi,Arrays.asList("Tourist attractions in","Tourist attractions of","Tourist attractions"),touristAttractionsToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Cities in","Cities of","Towns of","Towns in","Cities and towns in","Cities and towns of"),cityToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Localities of","Localities in","Hamlets in","Hamlets of","Villages in","Villages of","Cities in","Cities of","Towns of","Towns in","Cities and towns in","Cities and towns of"),cityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Townships of","Townships for","Townships in"),townshipToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Unincorporated communities of","Unincorporated communities for","Unincorporated communities in"),unincorporatedCommunityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Houses on the National Register of Historic Places in", "Houses on the National Register of Historic Places for"),nationalRegisterHouseToLocationsMap);
@@ -182,8 +181,6 @@ public class Database {
                extractLocationCategories(poi,Collections.singletonList("Airports in"),airportsToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Provinces in","Provinces of", "Provinces for"),provinceToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Buildings and structures in"),buildingsAndStructuresToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Villages in","Villages of"),villageToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Districts in","Districts of", "Districts for"),districtToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Populated places in"),populatedPlaceToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Churches in","Grade II listed churches in","Congretional churches in","Grade I listed churches in","Roman Catholic churches in","Lutheran churches in","Baptist churches in"),churchToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Railway stations for","Railway stations in","Train stations in","Train stations of","Metro stations in"),railwayToLocationsMap);
@@ -213,7 +210,6 @@ public class Database {
         });
 
         final List<Map<String,Collection<String>>> allDataMaps = Arrays.asList(
-                censusDesignatedPlaceLocationsMap,
                 sculptureToLocationsMap,radioStationToLocationsMap,formerPopulatedPlaceToLocationsMap,
                 islandToLocationsMap,bridgeToLocationsMap,hotelToLocationsMap,
                 forestToLocationsMap,protectedAreaToLocationsMap,hotelToLocationsMap,
@@ -225,7 +221,7 @@ public class Database {
                 townshipToLocationsMap,nationalRegisterHouseToLocationsMap,parksToLocationsMap,
                 mountainToLocationsMap,railwayToLocationsMap,cityToLocationsMap,
                 buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,
-                provinceToLocationsMap,villageToLocationsMap,districtToLocationsMap,
+                provinceToLocationsMap,districtToLocationsMap,censusDesignatedPlaceLocationsMap,
                 populatedPlaceToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap
         );
 
@@ -281,7 +277,6 @@ public class Database {
         System.out.println("Num attractions: "+touristAttractionsToLocationsMap.size());
         System.out.println("Num buildings: "+buildingsAndStructuresToLocationsMap.size());
         System.out.println("Num counties: "+countyToLocationsMap.size());
-        System.out.println("Num villages: "+villageToLocationsMap.size());
         System.out.println("Num airports: "+airportsToLocationsMap.size());
         System.out.println("Num districts: "+districtToLocationsMap.size());
         System.out.println("Num provinces: "+provinceToLocationsMap.size());
