@@ -78,15 +78,15 @@ public class Database {
         for(String category : poi.getCategories()) {
             for(String prefix : prefixes) {
                 if (category.startsWith(prefix)) {
-                    if(print) {
-                        System.out.println(poi.getTitle()+": "+category);
-                    }
                     locations.add(category.substring(prefix.length()).trim());
                     break;
                 }
             }
         }
         if(locations.size()>0) {
+            if(print) {
+                System.out.println(poi.getTitle() + ": " + locations);
+            }
             map.put(poi.getTitle(),locations);
         }
     }
