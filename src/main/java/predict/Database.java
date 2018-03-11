@@ -209,7 +209,7 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
-        //database.setPois(database.getPois().stream().filter(poi->airportsToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
-        //System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
+        database.setPois(database.getPois().stream().filter(poi->touristAttractionsToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
+        System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
     }
 }

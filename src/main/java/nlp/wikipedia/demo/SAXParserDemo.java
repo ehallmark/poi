@@ -25,7 +25,7 @@ public class SAXParserDemo {
 			System.exit(-1);
 		}
 
-		DemoHandler handler = new DemoHandler();
+		DemoSAXHandler handler = new DemoSAXHandler();
 
         WikiXMLParser wxsp = null;
         try {

@@ -25,7 +25,8 @@ import org.slf4j.LoggerFactory;
  *
  */
 
-public class DemoHandler implements PageCallbackHandler {
+public class DemoHandler {//implements PageCallbackHandler {
+	/* //CLASS IS FOR PULLING SUBSIDIARIES AND PARENTS OF COMPANIES
 	private static final File dataFile = new File("company_data.jobj");
 
 	private static final String CATEGORIES = "categories";
@@ -101,6 +102,6 @@ public class DemoHandler implements PageCallbackHandler {
 			}
 		}
 		total.getAndIncrement();
-	}
+	}*/
 
 }
