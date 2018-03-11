@@ -186,7 +186,7 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Dams in","Dams of"),damLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Bodies of water of"),bodyOfWaterToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Glaciers of"),glacierToLocationsMap);
-               extractLocationCategories(poi,Collections.singletonList("Lighthouses of"),lighthouseToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Lighthouses in","Lighthouses of"),lighthouseToLocationsMap);
            }
         });
         database.getPois().parallelStream().forEach(poi->{
