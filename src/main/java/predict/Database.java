@@ -78,7 +78,7 @@ public class Database {
         List<String> locations = Collections.synchronizedList(new ArrayList<>());
         for(String category : poi.getCategories()) {
             for(String prefix : prefixes) {
-                if (category.startsWith(prefix)) {
+                if (category.toLowerCase().startsWith(prefix.toLowerCase())) {
                     locations.add(category.substring(prefix.length()).trim());
                     break;
                 }
