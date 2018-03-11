@@ -125,7 +125,9 @@ public class Database {
         double portlandLat = 45d+31d/60+12d/3600;
         double portlandLong = -(122d+40d/60+55d/3600);
 
-
+        Map<String,Collection<String>> radioStationToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> censusDesignatedPlaceLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> formerPopulatedPlaceToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> touristAttractionsToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> sculptureToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> stadiumToLocationsMap = Collections.synchronizedMap(new HashMap<>());
@@ -202,13 +204,17 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Wilderness areas of","Wilderness areas in"),wildernessAreaToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Bridges in","Bridges over","Road bridges in","Pedestrian bridges in","Railway bridges in","Truss bridges in","Steel bridges in","Wooden bridges in"),bridgeToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Hotels in"),hotelToLocationsMap);
+               extractLocationCategories(poi,Collections.singletonList("Radio stations in"),radioStationToLocationsMap);
+               extractLocationCategories(poi,Collections.singletonList("Census-designated places in"),censusDesignatedPlaceLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Collage football venues","Rugby union stadiums in","Sports venues in","Multi-purpose stadiums in","Baseball venues in","Indoor arenas in","Football venues in","Soccer venues in"),stadiumToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Glass sculptures in","Fiberglass scultures in","Clay sculptures in","Porcelain sculptures in","Wooden sculptures in","Concrete sculptures in","Sculptures in","Steel sculptures in","Stone sculptures in","Marble sculptures in","Granite sculptures in","Bronze sculptures in","Outdoor sculptures in"),sculptureToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Former populated places in","Former populated places of"),formerPopulatedPlaceToLocationsMap);
            }
         });
 
         final List<Map<String,Collection<String>>> allDataMaps = Arrays.asList(
-                sculptureToLocationsMap,
+                censusDesignatedPlaceLocationsMap,
+                sculptureToLocationsMap,radioStationToLocationsMap,formerPopulatedPlaceToLocationsMap,
                 islandToLocationsMap,bridgeToLocationsMap,hotelToLocationsMap,
                 forestToLocationsMap,protectedAreaToLocationsMap,hotelToLocationsMap,
                 stadiumToLocationsMap,lighthouseToLocationsMap,glacierToLocationsMap,
@@ -225,19 +231,30 @@ public class Database {
 
         AtomicLong missing = new AtomicLong(0);
         final long total = database.getPois().size();
+        final Map<String,Long> counts = Collections.synchronizedMap(new HashMap<>());
         database.getPois().parallelStream().forEach(poi->{
             if(poi.getCategories()!=null) {
                 if(allDataMaps.stream()
                         .noneMatch(map->map.containsKey(poi.getTitle()))) {
                     System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
                     missing.getAndIncrement();
+                    poi.getCategories().forEach(category->{
+                        synchronized (counts) {
+                            counts.put(category,counts.getOrDefault(category,0L)+1L);
+                        }
+                    });
                 }
             }
         });
+        System.out.println("Top missing tags: "+String.join("\n",counts.entrySet().stream().sorted((e1,e2)->e2.getValue().compareTo(e1.getValue())).limit(100)
+        .map(e->e.getKey()+": "+e.getValue()).collect(Collectors.toList())));
         System.out.println("Num missing: "+missing.get()+" out of "+total);
+        System.out.println("Num census designated places: "+censusDesignatedPlaceLocationsMap.size());
+        System.out.println("Num former populated places: "+formerPopulatedPlaceToLocationsMap.size());
         System.out.println("Num stadiums: "+stadiumToLocationsMap.size());
         System.out.println("Num sculptures: "+sculptureToLocationsMap.size());
         System.out.println("Num islands: "+islandToLocationsMap.size());
+        System.out.println("Num radio stations: "+radioStationToLocationsMap.size());
         System.out.println("Num protected areas: "+protectedAreaToLocationsMap.size());
         System.out.println("Num bridges: "+bridgeToLocationsMap.size());
         System.out.println("Num hotels: "+hotelToLocationsMap.size());
@@ -276,7 +293,7 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
-        database.setPois(database.getPois().stream().filter(poi->historicLandmarksToLocationsMap.containsKey(poi.getTitle())||parksToLocationsMap.containsKey(poi.getTitle())||nationalRegisterHouseToLocationsMap.containsKey(poi.getTitle())||nationalRegisterPlaceToLocationsMap.containsKey(poi.getTitle())||touristAttractionsToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
-        System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
+        //database.setPois(database.getPois().stream().filter(poi->historicLandmarksToLocationsMap.containsKey(poi.getTitle())||parksToLocationsMap.containsKey(poi.getTitle())||nationalRegisterHouseToLocationsMap.containsKey(poi.getTitle())||nationalRegisterPlaceToLocationsMap.containsKey(poi.getTitle())||touristAttractionsToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
+        //System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
     }
 }
