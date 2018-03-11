@@ -126,6 +126,7 @@ public class Database {
 
 
         Map<String,Collection<String>> touristAttractionsToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> sculptureToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> stadiumToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> glacierToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> lighthouseToLocationsMap = Collections.synchronizedMap(new HashMap<>());
@@ -161,6 +162,7 @@ public class Database {
         Map<String,Collection<String>> wildernessAreaToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> hotelToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> bridgeToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<String,Collection<String>> islandToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         database.getPois().parallelStream().forEach(poi->{
            if(poi.getCategories()!=null) {
                extractLocationCategories(poi,Arrays.asList("Tourist attractions in","Tourist attractions of","Tourist attractions"),touristAttractionsToLocationsMap);
@@ -170,7 +172,7 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Houses on the National Register of Historic Places in", "Houses on the National Register of Historic Places for"),nationalRegisterHouseToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Counties in","Counties of","Counties for"),countyToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Hospitals of","Hospitals in","Hospitals for"),hospitalToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Private schools in","High schools in","Private schools for","Private schools of","Public schools in","Schools in","Public schools for","Public schools of"),schoolToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Private schools in","Elementary schools in","Jesuit high schools in","Universities and colleges in","Law schools in","Universities in","Colleges in","High schools in","Private schools for","Private schools of","Public schools in","Schools in","Public schools for","Public schools of"),schoolToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("National Historic Landmarks of", "National Historic Landmarks in", "National Historic Landmarks for"),historicLandmarksToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("National Register of Historic Places in"),nationalRegisterPlaceToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Museums in","Art museums in","History museums in","Art history museums in"),museumToLocationsMap);
@@ -187,29 +189,50 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Municipalities for", "Municipalities of", "Municipalities in"),municipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Former municipalities of","Former municipalities for", "Former municipalities in"),formerMunicipalityToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Nature reserves of","Nature reserves for","Nature reserves in"),natureReserveToLocationsMap);
-               extractLocationCategories(poi,Arrays.asList("Neighborhoods in","Neighbourhoords in","Neighbourhoods of","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Rural localities in","Rural localities of","Neighborhoods in","Neighbourhoords in","Neighbourhoods of","Neighborhoods of","Boroughs in","Boroughs of","Suburbs of","Suburbs in"),neihborhoodToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Waterfalls of","Waterfalls in"),waterfallToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Dams in","Dams of"),damLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Bodies of water of"),bodyOfWaterToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Glaciers of"),glacierToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Lighthouses in","Lighthouses of"),lighthouseToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Protected areas of","Protected areas in"),protectedAreaToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Islands of","Uninhabited islands of"),islandToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Forests of","National forests of","Rainforests of","National rainforests of"),forestToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Wilderness areas of","Wilderness areas in"),wildernessAreaToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Bridges in","Bridges over","Road bridges in","Pedestrian bridges in","Railway bridges in","Truss bridges in","Steel bridges in","Wooden bridges in"),bridgeToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Hotels in"),hotelToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Collage football venues","Rugby union stadiums in","Sports venues in","Multi-purpose stadiums in","Baseball venues in","Indoor arenas in","Football venues in","Soccer venues in"),stadiumToLocationsMap);
+               extractLocationCategories(poi,Arrays.asList("Glass sculptures in","Fiberglass scultures in","Clay sculptures in","Porcelain sculptures in","Wooden sculptures in","Concrete sculptures in","Sculptures in","Steel sculptures in","Stone sculptures in","Marble sculptures in","Granite sculptures in","Bronze sculptures in","Outdoor sculptures in"),sculptureToLocationsMap);
            }
         });
+
+        final List<Map<String,Collection<String>>> allDataMaps = Arrays.asList(
+                sculptureToLocationsMap,
+                islandToLocationsMap,bridgeToLocationsMap,hotelToLocationsMap,
+                forestToLocationsMap,protectedAreaToLocationsMap,hotelToLocationsMap,
+                stadiumToLocationsMap,lighthouseToLocationsMap,glacierToLocationsMap,
+                bodyOfWaterToLocationsMap,neihborhoodToLocationsMap,waterfallToLocationsMap,
+                damLocationsMap,natureReserveToLocationsMap,churchToLocationsMap,
+                nationalRegisterPlaceToLocationsMap,museumToLocationsMap,schoolToLocationsMap,
+                historicLandmarksToLocationsMap,unincorporatedCommunityToLocationsMap,airportsToLocationsMap,
+                townshipToLocationsMap,nationalRegisterHouseToLocationsMap,parksToLocationsMap,
+                mountainToLocationsMap,railwayToLocationsMap,cityToLocationsMap,
+                buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,
+                provinceToLocationsMap,villageToLocationsMap,districtToLocationsMap,
+                populatedPlaceToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap
+        );
+
         database.getPois().parallelStream().forEach(poi->{
             if(poi.getCategories()!=null) {
-                if(Arrays.asList(bridgeToLocationsMap,hotelToLocationsMap,forestToLocationsMap,protectedAreaToLocationsMap,hotelToLocationsMap,stadiumToLocationsMap,lighthouseToLocationsMap,glacierToLocationsMap,bodyOfWaterToLocationsMap,neihborhoodToLocationsMap,waterfallToLocationsMap,damLocationsMap,natureReserveToLocationsMap,churchToLocationsMap,nationalRegisterPlaceToLocationsMap,museumToLocationsMap,schoolToLocationsMap,historicLandmarksToLocationsMap,unincorporatedCommunityToLocationsMap,airportsToLocationsMap,townshipToLocationsMap,nationalRegisterHouseToLocationsMap,parksToLocationsMap,mountainToLocationsMap,railwayToLocationsMap,cityToLocationsMap,buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,provinceToLocationsMap,villageToLocationsMap,districtToLocationsMap,populatedPlaceToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap).stream()
+                if(allDataMaps.stream()
                         .noneMatch(map->map.containsKey(poi.getTitle()))) {
                     System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
                 }
             }
         });
         System.out.println("Num stadiums: "+stadiumToLocationsMap.size());
+        System.out.println("Num sculptures: "+sculptureToLocationsMap.size());
+        System.out.println("Num islands: "+islandToLocationsMap.size());
         System.out.println("Num protected areas: "+protectedAreaToLocationsMap.size());
         System.out.println("Num bridges: "+bridgeToLocationsMap.size());
         System.out.println("Num hotels: "+hotelToLocationsMap.size());
