@@ -24,7 +24,7 @@ public class WikipediaParagraphIterator implements SequenceIterator<VocabWord> {
     private ArrayBlockingQueue<Sequence<VocabWord>> queue;
     public WikipediaParagraphIterator(File file) {
         this.file = file;
-        this.queue = new ArrayBlockingQueue<>(100);
+        this.queue = new ArrayBlockingQueue<>(1000);
         reset();
     }
 
