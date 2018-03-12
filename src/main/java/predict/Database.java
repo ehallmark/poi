@@ -265,7 +265,6 @@ public class Database {
         });
 
         Set<String> states = Collections.synchronizedSet(States.getStates().stream().map(s->s.toUpperCase()).collect(Collectors.toSet()));
-        Set<String> countries = Collections.synchronizedSet(Countries.getCountries().stream().map(c->c.toUpperCase()).collect(Collectors.toSet()));
         Map<String,Collection<String>> stateLinksMap = Collections.synchronizedMap(new HashMap<>(states.size()));
         Set<String> stateLinks = Collections.synchronizedSet(new HashSet<>());
         states.forEach(state->{
@@ -279,19 +278,6 @@ public class Database {
                 }
             }
         });
-        Map<String,Collection<String>> countryLinksMap = Collections.synchronizedMap(new HashMap<>(countries.size()));
-        Set<String> countryLinks = Collections.synchronizedSet(new HashSet<>());
-        countries.forEach(country->{
-            Node node = placeGraph.findNode(country);
-            if(node!=null) {
-                Collection<String> related = getChildrenFor(node);
-                if (related.size() > 0) {
-                    System.out.println("Country "+country+": "+String.join("; ",related));
-                    countryLinksMap.put(country, related);
-                    countryLinks.addAll(related);
-                }
-            }
-        });
 
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
 
@@ -299,7 +285,7 @@ public class Database {
         Map<PointOfInterest,Collection<PointOfInterest>> poiToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         AtomicLong cnt = new AtomicLong(0);
         final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
-        database.setPois(database.getPois().stream().filter(poi->stateLinks.contains(poi.getTitle())||countryLinks.contains(poi.getTitle())).collect(Collectors.toList()));
+        database.setPois(database.getPois().stream().filter(poi->populatedPlaceToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
 
         nonPlaceMaps.parallelStream().forEach(map->{
             map.forEach((title,v)->{
@@ -316,8 +302,6 @@ public class Database {
         System.out.println("Pois matched: "+poiToLocationsMap.size());
         System.out.println("States matched: "+stateLinksMap.size()+ " out of "+states.size());
         System.out.println("State links: "+stateLinks.size());
-        System.out.println("Countries matched: "+countryLinksMap.size()+ " out of "+countries.size());
-        System.out.println("Country links: "+countryLinks.size());
 
         Set<String> statesCopy = new HashSet<>(states);
         statesCopy.removeAll(stateLinksMap.keySet());
