@@ -2,6 +2,11 @@ package main.java.predict;
 
 import lombok.Getter;
 import lombok.Setter;
+import main.java.graphical_modeling.model.graphs.BayesianNet;
+import main.java.graphical_modeling.model.graphs.Graph;
+import main.java.graphical_modeling.model.nodes.Node;
+import main.java.util.Countries;
+import main.java.util.States;
 import org.nd4j.linalg.primitives.Pair;
 
 import java.io.*;
@@ -117,6 +122,18 @@ public class Database {
         return ret;
     }
 
+    private static Collection<String> getChildrenFor(Node node) {
+        Collection<String> collection = Collections.synchronizedCollection(new HashSet<>());
+        getChildrenForHelper(node,collection);
+        return collection;
+    }
+
+    private static void getChildrenForHelper(Node node, Collection<String> collection) {
+        if(node.getChildren().isEmpty()) return;
+        collection.addAll(node.getChildren().stream().map(n->n.getLabel()).collect(Collectors.toSet()));
+        node.getChildren().forEach(child->getChildrenForHelper(child,collection));
+    }
+
     public static void main(String[] args) {
         Map<String,Map<String,Object>> data = load(dataFile);
         Database database = new Database(data);
@@ -215,7 +232,7 @@ public class Database {
             if(poi.getCategories()!=null) {
                 if(allDataMaps.stream()
                         .noneMatch(map->map.containsKey(poi.getTitle()))) {
-                    System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
+                    //System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
                     missing.getAndIncrement();
                     poi.getCategories().forEach(category->{
                         synchronized (counts) {
@@ -225,8 +242,48 @@ public class Database {
                 }
             }
         });
-        System.out.println("Top missing tags: "+String.join("\n",counts.entrySet().stream().sorted((e1,e2)->e2.getValue().compareTo(e1.getValue())).limit(100)
-        .map(e->e.getKey()+": "+e.getValue()).collect(Collectors.toList())));
+
+        Graph placeGraph = new BayesianNet();
+        Set<String> states = Collections.synchronizedSet(States.getStates().stream().map(state->state.toUpperCase()).collect(Collectors.toSet()));
+        populatedPlaceToLocationsMap.entrySet().forEach(e->{
+            String place = e.getKey().toUpperCase();
+            Collection<String> within = e.getValue();
+            Node placeNode = placeGraph.addBinaryNode(place);
+            within = Collections.synchronizedSet(within.stream().map(w->w.toUpperCase()).collect(Collectors.toCollection(HashSet::new)));
+            within.forEach(w->{
+                Node other = placeGraph.addBinaryNode(w);
+                placeGraph.connectNodes(other,placeNode);
+                //System.out.println(other.getLabel()+" -> "+placeNode.getLabel());
+            });
+        });
+
+        Map<String,Collection<String>> stateLinksMap = Collections.synchronizedMap(new HashMap<>(states.size()));
+        Set<String> stateLinks = Collections.synchronizedSet(new HashSet<>());
+        states.forEach(state->{
+            Node node = placeGraph.findNode(state);
+            if(node!=null) {
+                Collection<String> related = getChildrenFor(node);
+                if (related.size() > 0) {
+                    //System.out.println("State "+state+": "+String.join("; ",related));
+                    stateLinksMap.put(state, related);
+                    stateLinks.addAll(related);
+                }
+            }
+        });
+
+        final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
+        nonPlaceMaps.remove(populatedPlaceToLocationsMap);
+        nonPlaceMaps.forEach(map->{
+
+        });
+
+        System.out.println("States matched: "+stateLinksMap.size()+ " out of "+states.size());
+        System.out.println("State links: "+stateLinks.size()+ " out of "+states.size());
+        Set<String> statesCopy = new HashSet<>(states);
+        statesCopy.removeAll(stateLinksMap.keySet());
+        System.out.println("Missing states: "+String.join("; ",statesCopy));
+        //System.out.println("Top missing tags: "+String.join("\n",counts.entrySet().stream().sorted((e1,e2)->e2.getValue().compareTo(e1.getValue())).limit(100)
+        //.map(e->e.getKey()+": "+e.getValue()).collect(Collectors.toList())));
         System.out.println("Num missing: "+missing.get()+" out of "+total);
         System.out.println("Num census designated places: "+censusDesignatedPlaceLocationsMap.size());
         System.out.println("Num former populated places: "+formerPopulatedPlaceToLocationsMap.size());
@@ -262,7 +319,7 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
-        database.setPois(database.getPois().stream().filter(poi->stadiumToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
-        System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
+        //database.setPois(database.getPois().stream().filter(poi->islandToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
+        //System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
     }
 }
