@@ -20,7 +20,7 @@ public class Database {
     public static final String COORDINATES = "coordinates";
     public static final String TITLE = "title";
     public static final File dataFile = new File("coordinate_data.jobj");
-    public static final File poiToLocationsMapFile = new File("poi_to_locations_map.jobj");
+    public static final File poiToLocationsFile = new File("poi_to_locations.jobj");
     @Getter
     private Map<String,Map<String,Object>> data;
     @Getter @Setter
@@ -282,7 +282,7 @@ public class Database {
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
 
         nonPlaceMaps.remove(populatedPlaceToLocationsMap);
-        Map<PointOfInterest,Collection<PointOfInterest>> poiToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Collection<PointOfInterest> poiToLocations = Collections.synchronizedSet(new HashSet<>());
         AtomicLong cnt = new AtomicLong(0);
         final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
         database.setPois(database.getPois().stream().filter(poi->populatedPlaceToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
@@ -290,16 +290,14 @@ public class Database {
         nonPlaceMaps.parallelStream().forEach(map->{
             map.forEach((title,v)->{
                 PointOfInterest poi = database.getPoi(title);
-                List<PointOfInterest> closest = database.closestPois(poi.getLatitude(),poi.getLongitude(),100,true);
-                poiToLocationsMap.put(poi,closest);
-                if(cnt.getAndIncrement()%1000==999) {
+                poiToLocations.add(poi);
+                if(cnt.getAndIncrement()%100000==99999) {
                     System.out.println("Found "+cnt.get()+" out of "+totalCnt);
-                    System.out.println("Closest "+poi.getTitle()+": "+String.join("; ",closest.stream().map(p->p.getTitle()).collect(Collectors.toList())));
                 }
             });
         });
 
-        System.out.println("Pois matched: "+poiToLocationsMap.size());
+        System.out.println("Pois matched: "+poiToLocations.size());
         System.out.println("States matched: "+stateLinksMap.size()+ " out of "+states.size());
         System.out.println("State links: "+stateLinks.size());
 
@@ -343,6 +341,6 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
-        saveObject(poiToLocationsMap,poiToLocationsMapFile);
+        saveObject(poiToLocations,poiToLocationsFile);
   }
 }
