@@ -20,7 +20,7 @@ public class Database {
     public static final String COORDINATES = "coordinates";
     public static final String TITLE = "title";
     public static final File dataFile = new File("coordinate_data.jobj");
-
+    public static final File poiToLocationsMapFile = new File("poi_to_locations_map.jobj");
     @Getter
     private Map<String,Map<String,Object>> data;
     @Getter @Setter
@@ -296,30 +296,19 @@ public class Database {
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
 
         nonPlaceMaps.remove(populatedPlaceToLocationsMap);
-        Map<String,Collection<String>> poiToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        Map<PointOfInterest,Collection<PointOfInterest>> poiToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         AtomicLong cnt = new AtomicLong(0);
         final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
+        database.setPois(database.getPois().stream().filter(poi->stateLinks.contains(poi.getTitle())||countryLinks.contains(poi.getTitle())).collect(Collectors.toList()));
+
         nonPlaceMaps.parallelStream().forEach(map->{
             map.forEach((title,v)->{
-                v.forEach(loc->{
-                    if(stateLinks.contains(loc)) {
-                     //   System.out.println("Title "+title+": "+loc);
-                        synchronized (poiToLocationsMap) {
-                            poiToLocationsMap.putIfAbsent(loc,Collections.synchronizedSet(new HashSet<>()));
-                            poiToLocationsMap.get(loc).add(title);
-                        }
-                    } else if(states.contains(loc)) {
-                     //   System.out.println("Title "+title+": "+loc);
-                        synchronized (poiToLocationsMap) {
-                            poiToLocationsMap.putIfAbsent(loc,Collections.synchronizedSet(new HashSet<>()));
-                            poiToLocationsMap.get(loc).add(title);
-                        }
-                    } else {
-                        System.out.println("Not found "+title+": "+loc);
-                    }
-                });
-                if(cnt.getAndIncrement()%10000==9999) {
+                PointOfInterest poi = database.getPoi(title);
+                List<PointOfInterest> closest = database.closestPois(poi.getLatitude(),poi.getLongitude(),100,true);
+                poiToLocationsMap.put(poi,closest);
+                if(cnt.getAndIncrement()%1000==999) {
                     System.out.println("Found "+cnt.get()+" out of "+totalCnt);
+                    System.out.println("Closest "+poi.getTitle()+": "+String.join("; ",closest.stream().map(p->p.getTitle()).collect(Collectors.toList())));
                 }
             });
         });
@@ -370,5 +359,6 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
+        saveObject(poiToLocationsMap,poiToLocationsMapFile);
   }
 }
