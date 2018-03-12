@@ -279,8 +279,8 @@ public class Database {
         });
 
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
-
         nonPlaceMaps.remove(populatedPlaceToLocationsMap);
+        
         Collection<String> poiToLocations = Collections.synchronizedSet(new HashSet<>());
         AtomicLong cnt = new AtomicLong(0);
         final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
