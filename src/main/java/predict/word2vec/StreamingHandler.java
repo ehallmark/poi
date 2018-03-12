@@ -10,6 +10,8 @@ import org.nd4j.linalg.primitives.Pair;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,28 +34,35 @@ public class StreamingHandler implements PageCallbackHandler {
     private static final AtomicLong total = new AtomicLong(0);
     public void process(WikiPage page) {
         String text = page.getText();
-        Stream.of(text.split("\\.\\s+")).parallel().forEach(line-> {
-            List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
-                str = str.toLowerCase().replaceAll("[^a-z0-9\\-]","");
-                if(str.isEmpty()) return null;
-                if(!Character.isAlphabetic(str.charAt(0))) return null;
-                VocabWord word = new VocabWord(1, str);
-                word.setElementFrequency(1);
-                word.setSequencesCount(1);
-                word.setSpecial(false);
-                return word;
-            }).filter(t->t!=null).collect(Collectors.toList());
-            if(words.size()<3) return;
-            Sequence<VocabWord> sequence = new Sequence<>(words);
-            try {
-                if(total.getAndIncrement()%10000==9999) {
-                    System.out.println("Finished "+total.get());
-                }
-                queue.put(sequence);
-            } catch(Exception e) {
-                System.out.println("Interrupted...");
-                e.printStackTrace();
+        RecursiveAction mainAction = new RecursiveAction() {
+            @Override
+            protected void compute() {
+                Stream.of(text.split("\\.\\s+")).forEach(line-> {
+
+                    List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
+                        str = str.toLowerCase().replaceAll("[^a-z0-9\\-]", "");
+                        if (str.isEmpty()) return null;
+                        if (!Character.isAlphabetic(str.charAt(0))) return null;
+                        VocabWord word = new VocabWord(1, str);
+                        word.setElementFrequency(1);
+                        word.setSequencesCount(1);
+                        word.setSpecial(false);
+                        return word;
+                    }).filter(t -> t != null).collect(Collectors.toList());
+                    if (words.size() < 3) return;
+                    Sequence<VocabWord> sequence = new Sequence<>(words);
+                    try {
+                        if (total.getAndIncrement() % 10000 == 9999) {
+                            System.out.println("Finished " + total.get());
+                        }
+                        queue.put(sequence);
+                    } catch (Exception e) {
+                        System.out.println("Interrupted...");
+                        e.printStackTrace();
+                    }
+                });
             }
-        });
+        };
+        mainAction.fork();
     }
 }
