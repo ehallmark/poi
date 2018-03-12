@@ -43,7 +43,7 @@ public class StreamingHandler implements PageCallbackHandler {
                 word.setSpecial(false);
                 return word;
             }).filter(t->t!=null).collect(Collectors.toList());
-            if(words.isEmpty()) return;
+            if(words.size()<3) return;
             Sequence<VocabWord> sequence = new Sequence<>(words);
             try {
                 if(total.getAndIncrement()%1000==999) {
