@@ -25,8 +25,13 @@ public class Database {
     private Map<String,Map<String,Object>> data;
     @Getter @Setter
     private List<PointOfInterest> pois;
+    private Map<String,PointOfInterest> titleToPOIMap;
     public Database(Map<String,Map<String,Object>> data) {
         this.data=data;
+    }
+
+    public PointOfInterest getPoi(String label) {
+        return titleToPOIMap.get(label);
     }
 
     public void init() {
@@ -39,6 +44,10 @@ public class Database {
             Collection<String> links = (Collection<String>)e.getValue().getOrDefault(LINKS,Collections.emptyList());
             Collection<String> categories = (Collection<String>)e.getValue().getOrDefault(CATEGORIES,Collections.emptyList());
             pois.add(new PointOfInterest(degreesToRads(coordinates.getFirst()),degreesToRads(coordinates.getSecond()),title,links,categories));
+        });
+        this.titleToPOIMap=Collections.synchronizedMap(new HashMap<>());
+        this.pois.parallelStream().forEach(poi->{
+            titleToPOIMap.put(poi.getTitle(),poi);
         });
         System.out.println("Finished initializing pois.");
     }
@@ -244,12 +253,10 @@ public class Database {
         });
 
         Graph placeGraph = new BayesianNet();
-        Set<String> states = Collections.synchronizedSet(States.getStates().stream().map(state->state.toUpperCase()).collect(Collectors.toSet()));
         populatedPlaceToLocationsMap.entrySet().forEach(e->{
-            String place = e.getKey().toUpperCase();
+            String place = e.getKey();
             Collection<String> within = e.getValue();
             Node placeNode = placeGraph.addBinaryNode(place);
-            within = Collections.synchronizedSet(within.stream().map(w->w.toUpperCase()).collect(Collectors.toCollection(HashSet::new)));
             within.forEach(w->{
                 Node other = placeGraph.addBinaryNode(w);
                 placeGraph.connectNodes(other,placeNode);
@@ -257,6 +264,8 @@ public class Database {
             });
         });
 
+        Set<String> states = Collections.synchronizedSet(States.getStates().stream().map(s->s.toUpperCase()).collect(Collectors.toSet()));
+        Set<String> countries = Collections.synchronizedSet(Countries.getCountries().stream().map(c->c.toUpperCase()).collect(Collectors.toSet()));
         Map<String,Collection<String>> stateLinksMap = Collections.synchronizedMap(new HashMap<>(states.size()));
         Set<String> stateLinks = Collections.synchronizedSet(new HashSet<>());
         states.forEach(state->{
@@ -264,21 +273,63 @@ public class Database {
             if(node!=null) {
                 Collection<String> related = getChildrenFor(node);
                 if (related.size() > 0) {
-                    //System.out.println("State "+state+": "+String.join("; ",related));
+                    System.out.println("State "+state+": "+String.join("; ",related));
                     stateLinksMap.put(state, related);
                     stateLinks.addAll(related);
                 }
             }
         });
-
-        final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
-        nonPlaceMaps.remove(populatedPlaceToLocationsMap);
-        nonPlaceMaps.forEach(map->{
-
+        Map<String,Collection<String>> countryLinksMap = Collections.synchronizedMap(new HashMap<>(countries.size()));
+        Set<String> countryLinks = Collections.synchronizedSet(new HashSet<>());
+        countries.forEach(country->{
+            Node node = placeGraph.findNode(country);
+            if(node!=null) {
+                Collection<String> related = getChildrenFor(node);
+                if (related.size() > 0) {
+                    System.out.println("Country "+country+": "+String.join("; ",related));
+                    countryLinksMap.put(country, related);
+                    countryLinks.addAll(related);
+                }
+            }
         });
 
+        final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
+
+        nonPlaceMaps.remove(populatedPlaceToLocationsMap);
+        Map<String,Collection<String>> poiToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        AtomicLong cnt = new AtomicLong(0);
+        final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
+        nonPlaceMaps.parallelStream().forEach(map->{
+            map.forEach((title,v)->{
+                v.forEach(loc->{
+                    if(stateLinks.contains(loc)) {
+                     //   System.out.println("Title "+title+": "+loc);
+                        synchronized (poiToLocationsMap) {
+                            poiToLocationsMap.putIfAbsent(loc,Collections.synchronizedSet(new HashSet<>()));
+                            poiToLocationsMap.get(loc).add(title);
+                        }
+                    } else if(states.contains(loc)) {
+                     //   System.out.println("Title "+title+": "+loc);
+                        synchronized (poiToLocationsMap) {
+                            poiToLocationsMap.putIfAbsent(loc,Collections.synchronizedSet(new HashSet<>()));
+                            poiToLocationsMap.get(loc).add(title);
+                        }
+                    } else {
+                        System.out.println("Not found "+title+": "+loc);
+                    }
+                });
+                if(cnt.getAndIncrement()%10000==9999) {
+                    System.out.println("Found "+cnt.get()+" out of "+totalCnt);
+                }
+            });
+        });
+
+        System.out.println("Pois matched: "+poiToLocationsMap.size());
         System.out.println("States matched: "+stateLinksMap.size()+ " out of "+states.size());
-        System.out.println("State links: "+stateLinks.size()+ " out of "+states.size());
+        System.out.println("State links: "+stateLinks.size());
+        System.out.println("Countries matched: "+countryLinksMap.size()+ " out of "+countries.size());
+        System.out.println("Country links: "+countryLinks.size());
+
         Set<String> statesCopy = new HashSet<>(states);
         statesCopy.removeAll(stateLinksMap.keySet());
         System.out.println("Missing states: "+String.join("; ",statesCopy));
@@ -319,7 +370,5 @@ public class Database {
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
 
-        //database.setPois(database.getPois().stream().filter(poi->islandToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
-        //System.out.println("POIs: "+String.join("\n",database.closestPois(portlandLat,portlandLong,30,false).stream().map(e->e.getTitle()+": "+e.getCategories()).collect(Collectors.toList())));
-    }
+  }
 }

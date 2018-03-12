@@ -3,10 +3,14 @@ package main.java.predict;
 import lombok.Getter;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PointOfInterest {
+    @Getter
     private double latitude;
+    @Getter
     private double longitude;
     @Getter
     private String title;
@@ -17,8 +21,8 @@ public class PointOfInterest {
     public PointOfInterest(double latitude, double longitude, String title, Collection<String> links, Collection<String> categories) {
         this.latitude=latitude;
         this.longitude=longitude;
-        this.categories=categories;
-        this.title=title;
+        this.categories=categories==null?null: Collections.synchronizedSet(categories.stream().map(c->c.toUpperCase()).collect(Collectors.toSet()));
+        this.title=title==null?null:title.toUpperCase();
         this.links=links;
     }
 
