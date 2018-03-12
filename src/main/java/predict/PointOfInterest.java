@@ -2,12 +2,14 @@ package main.java.predict;
 
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PointOfInterest {
+public class PointOfInterest implements Serializable{
+    private final static long serialVersionUID = 1L;
     @Getter
     private double latitude;
     @Getter
