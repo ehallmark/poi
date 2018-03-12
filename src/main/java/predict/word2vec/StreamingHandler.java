@@ -32,7 +32,7 @@ public class StreamingHandler implements PageCallbackHandler {
     private static final AtomicLong total = new AtomicLong(0);
     public void process(WikiPage page) {
         String text = page.getText();
-        Stream.of(text.split("\\.\\s+")).filter(word->word!=null&&word.length()>0).forEach(line-> {
+        Stream.of(text.split("\\.\\s+")).parallel().forEach(line-> {
             List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
                 str = str.toLowerCase().replaceAll("[^a-z0-9\\-]","");
                 if(str.isEmpty()) return null;
@@ -46,7 +46,7 @@ public class StreamingHandler implements PageCallbackHandler {
             if(words.size()<3) return;
             Sequence<VocabWord> sequence = new Sequence<>(words);
             try {
-                if(total.getAndIncrement()%1000==999) {
+                if(total.getAndIncrement()%10000==9999) {
                     System.out.println("Finished "+total.get());
                 }
                 queue.put(sequence);
