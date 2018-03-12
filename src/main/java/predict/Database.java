@@ -280,16 +280,27 @@ public class Database {
 
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
         nonPlaceMaps.remove(populatedPlaceToLocationsMap);
-        
+
         Collection<String> poiToLocations = Collections.synchronizedSet(new HashSet<>());
         AtomicLong cnt = new AtomicLong(0);
         final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
         database.setPois(database.getPois().stream().filter(poi->populatedPlaceToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
 
+        Graph linkGraph = new BayesianNet();
         nonPlaceMaps.parallelStream().forEach(map->{
             map.forEach((title,v)->{
                 poiToLocations.add(title);
-                if(cnt.getAndIncrement()%100000==99999) {
+                Node node = linkGraph.addBinaryNode(title);
+                PointOfInterest poi = database.getPoi(title);
+                if(poi.getLinks()!=null) {
+                    poi.getLinks().forEach(l -> {
+                        l = l.toUpperCase();
+                        Node lNode = linkGraph.addBinaryNode(l);
+                        linkGraph.connectNodes(node, lNode);
+                    });
+                }
+                if(cnt.getAndIncrement()%10000==9999) {
+                    System.out.println("Node: "+node.getLabel()+" => "+poi.getLinks());
                     System.out.println("Found "+cnt.get()+" out of "+totalCnt);
                 }
             });

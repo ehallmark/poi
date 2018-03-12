@@ -16,9 +16,10 @@ public class SAXParserDemo {
 	/**
 	 * @param args
 	 */
+	public static final String WIKI_FILE = "/home/ehallmark/data/enwiki-latest-pages-articles-multistream.xml";
 	public static void main(String[] args) {
 		args = new String[]{
-				"/home/ehallmark/data/enwiki-latest-pages-articles-multistream.xml"
+				WIKI_FILE
 		};
 		if(args.length != 1) {
 			System.err.println("Usage: Parser <XML-FILE>");
