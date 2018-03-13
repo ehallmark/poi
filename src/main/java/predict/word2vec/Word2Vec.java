@@ -106,6 +106,7 @@ public class Word2Vec {
                 .elementsLearningAlgorithm(new SkipGram<>())
                 .iterate(iterator);
         if(!newModel) {
+            System.out.println("Using previous model...");
             //iterator.setRunVocab(false);
             builder = builder
                     .vocabCache(net.vocab())
