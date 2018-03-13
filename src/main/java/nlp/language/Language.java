@@ -72,6 +72,28 @@ public class Language {
       e.printStackTrace();
     } catch (ParseException e) {
       e.printStackTrace();
+    } catch(Exception e) {
+      e.printStackTrace();
+    }
+    if(jobj==null) {
+      System.out.println("Defaulting to english...");
+      try {
+        jobj = (JSONObject) new JSONParser().parse("{\n" +
+                "    \"category\": \"Category\",\n" +
+                "    \"special\" : \"Special\",\n" +
+                "    \"portal\" : \"Portal\",\n" +
+                "    \"redirect\" : \"#REDIRECT\",\n" +
+                "    \"stub\" : \"stub\",\n" +
+                "    \"disambiguation\" : \"disambig\",\n" +
+                "    \"list\" : \"List of\",\n" +
+                "    \"references\" : \"References\",\n" +
+                "    \"further\" : \"Further reading\",\n" +
+                "    \"seealso\" : \"See also\",\n" +
+                "    \"notes\": \"Notes\"\n" +
+                "  }");
+      } catch(Exception e) {
+        e.printStackTrace();
+      }
     }
     return jobj;
   }

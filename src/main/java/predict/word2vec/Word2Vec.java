@@ -30,17 +30,17 @@ public class Word2Vec {
     }
 
     public static void main(String[] args) {
-        Function<SequenceVectors<VocabWord>,Void> saveFunction = sequenceVectors->{
+        Function<org.deeplearning4j.models.word2vec.Word2Vec,Void> saveFunction = sequenceVectors->{
             System.out.println("Saving...");
             try {
-                save((org.deeplearning4j.models.word2vec.Word2Vec)sequenceVectors);
+                save(sequenceVectors);
             } catch (Exception e) {
                 e.printStackTrace();
             }
             return null;
         };
 
-        Collection<String> words = Arrays.asList("RAYMOND TOWNSHIP, KNOX COUNTY, NEBRASKA","TORTUGA, CALIFORNIA","electricity","artificial","intelligence","chemistry","biology","vehicle","drone");
+        Collection<String> words = Arrays.asList("multnomah","country","church","hospital","semiconductor","electricity","artificial","intelligence","chemistry","biology","vehicle","drone");
         Function<Void,Void> afterEpochFunction = (v) -> {
             for (String word : words) {
                 Collection<String> lst = getNet().wordsNearest(word, 10);
@@ -50,7 +50,24 @@ public class Word2Vec {
             return null;
         };
 
-        int nEpochs = 1;
+
+        int windowSize = 7;
+        int minWordFrequency = 15;
+        double negativeSampling = 30;
+        double sampling = 0.0001;
+        //double learningRate = 0.1;
+        //double minLearningRate = 0.001;
+        double learningRate = 0.0001;// 0.05;
+        double minLearningRate = 0.0001;//0.001;
+
+        try {
+            System.out.println("Trying to load model....");
+            net = WordVectorSerializer.readWord2VecModel(modelFile);
+            System.out.println("Finished loading model.");
+        } catch(Exception e) {
+            e.printStackTrace();
+            net = null;
+        }
 
         SequenceIterator<VocabWord> iterator = new WikipediaParagraphIterator(new File(SAXParserDemo.WIKI_FILE));
         DefaultTokenizerFactory tf = new DefaultTokenizerFactory();
@@ -60,22 +77,6 @@ public class Word2Vec {
                 return s;
             }
         });
-
-        int windowSize = 7;
-        int minWordFrequency = 15;
-        double negativeSampling = 30;
-        double sampling = 0.0001;
-        //double learningRate = 0.1;
-        //double minLearningRate = 0.001;
-        double learningRate = 0.001;// 0.05;
-        double minLearningRate = 0.0001;//0.001;
-
-        try {
-            net = WordVectorSerializer.readWord2VecModel(modelFile);
-        } catch(Exception e) {
-            e.printStackTrace();
-            net = null;
-        }
 
         List<String> stopWords = StopWords.getStopWords();
         System.out.println("Num stopwords: "+stopWords.size());
@@ -116,6 +117,6 @@ public class Word2Vec {
         // build train save
         net = builder.build();
         net.fit();
-        saveFunction.apply(net);
+        afterEpochFunction.apply(null);
     }
 }

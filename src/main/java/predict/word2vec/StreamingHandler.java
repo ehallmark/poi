@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,10 +29,14 @@ import static main.java.predict.Database.*;
 
 public class StreamingHandler implements PageCallbackHandler {
     private ArrayBlockingQueue<Sequence<VocabWord>> queue;
+    private AtomicInteger cnt = new AtomicInteger(0);
     public StreamingHandler(ArrayBlockingQueue<Sequence<VocabWord>> queue) {
         this.queue=queue;
     }
     private static final AtomicLong total = new AtomicLong(0);
+    public boolean completedCurrentTasks() {
+        return cnt.get()==0;
+    }
     public void process(WikiPage page) {
         String text = page.getText();
         RecursiveAction mainAction = new RecursiveAction() {
@@ -61,8 +66,10 @@ public class StreamingHandler implements PageCallbackHandler {
                         e.printStackTrace();
                     }
                 });
+                cnt.getAndDecrement();
             }
         };
+        cnt.getAndIncrement();
         mainAction.fork();
     }
 }

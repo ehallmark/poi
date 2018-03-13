@@ -23,6 +23,7 @@ public class WikipediaParagraphIterator implements SequenceIterator<VocabWord> {
     private File file;
     private RecursiveAction task;
     private ArrayBlockingQueue<Sequence<VocabWord>> queue;
+    StreamingHandler handler;
     public WikipediaParagraphIterator(File file) {
         this.file = file;
         this.queue = new ArrayBlockingQueue<>(1000);
@@ -30,7 +31,7 @@ public class WikipediaParagraphIterator implements SequenceIterator<VocabWord> {
     }
 
     private boolean hasNextDocument() {
-        return queue.size()>0 || !task.isDone();
+        return queue.size()>0 || !task.isDone() || !handler.completedCurrentTasks();
     }
 
 
@@ -55,7 +56,7 @@ public class WikipediaParagraphIterator implements SequenceIterator<VocabWord> {
     public void reset() {
         if(task!=null && !task.isDone()) return;
         queue.clear();
-        StreamingHandler handler = new StreamingHandler(queue);
+        handler = new StreamingHandler(queue);
         task = new RecursiveAction() {
             @Override
             protected void compute() {
