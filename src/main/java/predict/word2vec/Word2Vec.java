@@ -67,8 +67,8 @@ public class Word2Vec {
         double sampling = 0.0001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
-        double learningRate = 0.05;
-        double minLearningRate = 0.001;
+        double learningRate = 0.001;// 0.05;
+        double minLearningRate = 0.0001;//0.001;
 
         try {
             net = WordVectorSerializer.readWord2VecModel(modelFile);
@@ -115,6 +115,6 @@ public class Word2Vec {
         // build train save
         net = builder.build();
         net.fit();
-        save(net);
+        saveFunction.apply(net);
     }
 }
