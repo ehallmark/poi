@@ -58,7 +58,7 @@ public class Word2Vec {
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
         double learningRate = 0.0001;// 0.05;
-        double minLearningRate = 0.0001;//0.001;
+        double minLearningRate = 0.00001;//0.001;
 
         try {
             System.out.println("Trying to load model....");

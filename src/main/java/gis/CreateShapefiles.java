@@ -88,8 +88,8 @@ public class CreateShapefiles {
         //layer.getBounds()
 
         pointOfInterests.forEach(poi->{
-            double latitude = poi.getLatitude()*60;
-            double longitude = poi.getLongitude()*60;
+            double latitude = poi.getLatitude()*58;
+            double longitude = poi.getLongitude()*57;
             String name = poi.getTitle();
             int number = poi.getLinks()==null?0:poi.getLinks().size();
 

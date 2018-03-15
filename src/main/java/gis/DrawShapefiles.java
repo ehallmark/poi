@@ -42,12 +42,12 @@ public class DrawShapefiles {
         map.setTitle("Title");
 
         addLayerToMap(map,CreateShapefiles.poiShapeFile);
-        addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-americas.shp/groads-v1-americas.shp"));
+        /*addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-americas.shp/groads-v1-americas.shp"));
         addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-europe.shp/groads-v1-europe.shp"));
         addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-africa.shp/groads-v1-africa.shp"));
         addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-oceania-west.shp/groads-v1-oceania-west.shp"));
         addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-oceania-east.shp/groads-v1-oceania-east.shp"));
-        addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-asia.shp/groads-v1-asia.shp"));
+        addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-asia.shp/groads-v1-asia.shp"));*/
 
 
         /*SimpleFeatureIterator featureIterator = featureSource.getFeatures().features();

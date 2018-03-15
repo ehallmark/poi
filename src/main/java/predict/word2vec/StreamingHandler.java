@@ -29,52 +29,37 @@ import static main.java.predict.Database.*;
 
 public class StreamingHandler implements PageCallbackHandler {
     private ArrayBlockingQueue<Sequence<VocabWord>> queue;
-    private AtomicInteger cnt = new AtomicInteger(0);
+
     public StreamingHandler(ArrayBlockingQueue<Sequence<VocabWord>> queue) {
         this.queue=queue;
     }
     private static final AtomicLong total = new AtomicLong(0);
-    public boolean completedCurrentTasks() {
-        return cnt.get()==0;
-    }
+
     public void process(WikiPage page) {
         String text = page.getText();
-        RecursiveAction mainAction = new RecursiveAction() {
-            @Override
-            protected void compute() {
-                try {
-                    Stream.of(text.split("\\.\\s+")).forEach(line -> {
+        Stream.of(text.split("\\.\\s+")).forEach(line -> {
 
-                        List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
-                            str = str.toLowerCase().replaceAll("[^a-z0-9\\-]", "");
-                            if (str.isEmpty()) return null;
-                            if (!Character.isAlphabetic(str.charAt(0))) return null;
-                            VocabWord word = new VocabWord(1, str);
-                            word.setElementFrequency(1);
-                            word.setSequencesCount(1);
-                            word.setSpecial(false);
-                            return word;
-                        }).filter(t -> t != null).collect(Collectors.toList());
-                        if (words.size() < 3) return;
-                        Sequence<VocabWord> sequence = new Sequence<>(words);
-                        try {
-                            if (total.getAndIncrement() % 10000 == 9999) {
-                                System.out.println("Finished " + total.get());
-                            }
-                            queue.put(sequence);
-                        } catch (Exception e) {
-                            System.out.println("Interrupted...");
-                            e.printStackTrace();
-                        }
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    cnt.getAndDecrement();
+            List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
+                str = str.toLowerCase().replaceAll("[^a-z0-9\\-]", "");
+                if (str.isEmpty()) return null;
+                if (!Character.isAlphabetic(str.charAt(0))) return null;
+                VocabWord word = new VocabWord(1, str);
+                word.setElementFrequency(1);
+                word.setSequencesCount(1);
+                word.setSpecial(false);
+                return word;
+            }).filter(t -> t != null).collect(Collectors.toList());
+            if (words.size() < 3) return;
+            Sequence<VocabWord> sequence = new Sequence<>(words);
+            try {
+                if (total.getAndIncrement() % 10000 == 9999) {
+                    System.out.println("Finished " + total.get());
                 }
+                queue.put(sequence);
+            } catch (Exception e) {
+                System.out.println("Interrupted...");
+                e.printStackTrace();
             }
-        };
-        cnt.getAndIncrement();
-        mainAction.fork();
+        });
     }
 }
