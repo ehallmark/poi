@@ -1,6 +1,7 @@
 package main.java.reddit;
 
 import java.sql.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class Postgres {
@@ -23,6 +24,7 @@ public class Postgres {
         conn.commit();
     }
 
+    private static final AtomicLong ingestCnt = new AtomicLong(0);
     public static void ingest(Comment comment) throws SQLException {
         PreparedStatement ps = conn.prepareStatement("insert into comments (id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality) values (?,?,?,?,?,?,?,?,?) on conflict (id) do nothing");
         ps.setString(1,comment.getId());
@@ -35,10 +37,14 @@ public class Postgres {
         ps.setString(8,comment.getAuthor());
         ps.setInt(9,comment.getControversiality());
         ps.executeUpdate();
+        if(ingestCnt.getAndIncrement()%10000==9999) {
+            commit();
+        }
+        ps.close();
     }
 
     public static void iterate(Consumer<Comment> consumer) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement("c1.select id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality,c2.text as parent_text,from comments as c1 join comments as c2 on ('t3_'||c1.id=c2.id) order by random()");
+        PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality,c2.text as parent_text from comments as c1 join comments as c2 on ('t1_'||c2.id=c1.parent_id)");
         ResultSet rs = ps.executeQuery();
         while(rs.next()) {
             Comment comment = new Comment();
@@ -55,5 +61,6 @@ public class Postgres {
             consumer.accept(comment);
         }
         rs.close();
+        ps.close();
     }
 }
