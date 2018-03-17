@@ -45,6 +45,7 @@ public class Postgres {
 
     public static void iterate(Consumer<Comment> consumer) throws SQLException {
         PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality,c2.text as parent_text from comments as c1 join comments as c2 on ('t1_'||c2.id=c1.parent_id)");
+        ps.setFetchSize(100);
         ResultSet rs = ps.executeQuery();
         while(rs.next()) {
             Comment comment = new Comment();
