@@ -83,8 +83,10 @@ public class BeamSearch<T> {
         INDArray output = graph.output(newInput)[0];
         graph.clearLayerMaskArrays();
         INDArray finalStepOutput = output.get(NDArrayIndex.all(),NDArrayIndex.point(output.shape()[1]-1));
-
         Pair<INDArray,Double> prediction = predictNextStepFunction.apply(finalStepOutput);
+        if(prediction==null) {
+            return input;
+        }
         newInput.get(NDArrayIndex.all(),NDArrayIndex.point(newInput.shape()[1])).assign(prediction.getFirst());
         double score = prediction.getSecond();
         if(iteration<totalIterations) {
