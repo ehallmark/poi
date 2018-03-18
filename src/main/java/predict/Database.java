@@ -20,6 +20,7 @@ public class Database {
     public static final String COORDINATES = "coordinates";
     public static final String TITLE = "title";
     public static final File dataFile = new File("coordinate_data.jobj");
+    public static final File labeledDataFile = new File("labeled_coordinate_data.jobj");
     @Getter
     private Map<String,Map<String,Object>> data;
     @Getter @Setter
@@ -33,7 +34,7 @@ public class Database {
         return titleToPOIMap.get(label);
     }
 
-    public void init() {
+    public void init(boolean alreadyIsRadian) {
         System.out.println("Initializing pois...");
         this.pois = Collections.synchronizedList(new ArrayList<>(data.size()));
         data.entrySet().parallelStream().forEach(e->{
@@ -42,7 +43,13 @@ public class Database {
             if(coordinates==null) return;
             Collection<String> links = (Collection<String>)e.getValue().getOrDefault(LINKS,Collections.emptyList());
             Collection<String> categories = (Collection<String>)e.getValue().getOrDefault(CATEGORIES,Collections.emptyList());
-            pois.add(new PointOfInterest(degreesToRads(coordinates.getFirst()),degreesToRads(coordinates.getSecond()),title,links,categories));
+            double lat = coordinates.getFirst();
+            double log = coordinates.getSecond();
+            if(!alreadyIsRadian) {
+                lat = degreesToRads(lat);
+                log = degreesToRads(log);
+            }
+            pois.add(new PointOfInterest(lat,log,title,links,categories));
         });
         this.titleToPOIMap=Collections.synchronizedMap(new HashMap<>());
         this.pois.parallelStream().forEach(poi->{
@@ -69,8 +76,13 @@ public class Database {
     }
 
     public static Map<String,Map<String,Object>> load(File file) {
+        return (Map<String,Map<String,Object>>) loadObject(file);
+    }
+
+
+    public static Object loadObject(File file) {
         try(ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-            return (Map<String,Map<String,Object>>) ois.readObject();
+            return ois.readObject();
         }catch(Exception e) {
             e.printStackTrace();
             return null;
@@ -145,12 +157,12 @@ public class Database {
     public static void main(String[] args) {
         Map<String,Map<String,Object>> data = load(dataFile);
         Database database = new Database(data);
-        database.init();
+        database.init(false);
 
         double portlandLat = 45d+31d/60+12d/3600;
         double portlandLong = -(122d+40d/60+55d/3600);
 
-        Map<String,Collection<String>> radioStationToLocationsMap = Collections.synchronizedMap(new HashMap<>());
+        //Map<String,Collection<String>> radioStationToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> censusDesignatedPlaceLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> formerPopulatedPlaceToLocationsMap = Collections.synchronizedMap(new HashMap<>());
         Map<String,Collection<String>> touristAttractionsToLocationsMap = Collections.synchronizedMap(new HashMap<>());
@@ -209,7 +221,7 @@ public class Database {
                extractLocationCategories(poi,Arrays.asList("Wilderness areas of","Wilderness areas in"),wildernessAreaToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Bridges in","Bridges over","Road bridges in","Pedestrian bridges in","Railway bridges in","Truss bridges in","Steel bridges in","Wooden bridges in"),bridgeToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Hotels in"),hotelToLocationsMap);
-               extractLocationCategories(poi,Collections.singletonList("Radio stations in"),radioStationToLocationsMap);
+              // extractLocationCategories(poi,Collections.singletonList("Radio stations in"),radioStationToLocationsMap);
                extractLocationCategories(poi,Collections.singletonList("Census-designated places in"),censusDesignatedPlaceLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Collage football venues","Rugby union stadiums in","Sports venues in","Multi-purpose stadiums in","Baseball venues in","Indoor arenas in","Football venues in","Soccer venues in"),stadiumToLocationsMap);
                extractLocationCategories(poi,Arrays.asList("Glass sculptures in","Fiberglass scultures in","Clay sculptures in","Porcelain sculptures in","Wooden sculptures in","Concrete sculptures in","Sculptures in","Steel sculptures in","Stone sculptures in","Marble sculptures in","Granite sculptures in","Bronze sculptures in","Outdoor sculptures in"),sculptureToLocationsMap);
@@ -218,28 +230,30 @@ public class Database {
         });
 
         final List<Map<String,Collection<String>>> allDataMaps = Arrays.asList(
-                sculptureToLocationsMap,radioStationToLocationsMap,formerPopulatedPlaceToLocationsMap,
+                sculptureToLocationsMap,formerPopulatedPlaceToLocationsMap,
                 islandToLocationsMap,bridgeToLocationsMap,hotelToLocationsMap,
-                forestToLocationsMap,protectedAreaToLocationsMap,hotelToLocationsMap,
+                forestToLocationsMap,protectedAreaToLocationsMap,wildernessAreaToLocationsMap,
                 stadiumToLocationsMap,lighthouseToLocationsMap,glacierToLocationsMap,
                 bodyOfWaterToLocationsMap,waterfallToLocationsMap,
                 damLocationsMap,natureReserveToLocationsMap,churchToLocationsMap,
                 nationalRegisterPlaceToLocationsMap,museumToLocationsMap,schoolToLocationsMap,
                 historicLandmarksToLocationsMap,airportsToLocationsMap,
                 nationalRegisterHouseToLocationsMap,parksToLocationsMap,
-                mountainToLocationsMap,railwayToLocationsMap,
+                mountainToLocationsMap,railwayToLocationsMap,hospitalToLocationsMap,
                 buildingsAndStructuresToLocationsMap,touristAttractionsToLocationsMap,
                 censusDesignatedPlaceLocationsMap,
                 populatedPlaceToLocationsMap
+                //radioStationToLocationsMap
         );
 
         AtomicLong missing = new AtomicLong(0);
         final long total = database.getPois().size();
         final Map<String,Long> counts = Collections.synchronizedMap(new HashMap<>());
+
+        Map<String,Map<String,Object>> filteredObjects = Collections.synchronizedMap(new HashMap<>());
         database.getPois().parallelStream().forEach(poi->{
             if(poi.getCategories()!=null) {
-                if(allDataMaps.stream()
-                        .noneMatch(map->map.containsKey(poi.getTitle()))) {
+                if(allDataMaps.stream().noneMatch(map->map.containsKey(poi.getTitle()))) {
                     //System.out.println("Missing "+poi.getTitle()+": "+poi.getCategories());
                     missing.getAndIncrement();
                     poi.getCategories().forEach(category->{
@@ -247,9 +261,19 @@ public class Database {
                             counts.put(category,counts.getOrDefault(category,0L)+1L);
                         }
                     });
+                } else {
+                    Map<String,Object> map = new HashMap<>();
+                    map.put(CATEGORIES,poi.getCategories());
+                    map.put(LINKS,poi.getLinks());
+                    map.put(TITLE,poi.getTitle());
+                    map.put(COORDINATES,new Pair<>(poi.getLatitude(),poi.getLongitude()));
+                    filteredObjects.put(poi.getTitle(),Collections.synchronizedMap(map));
                 }
             }
         });
+
+        System.out.println("Num filtered objects: "+filteredObjects.size());
+        saveObject(filteredObjects,labeledDataFile);
 
         Graph placeGraph = new BayesianNet();
         populatedPlaceToLocationsMap.entrySet().forEach(e->{
@@ -281,47 +305,23 @@ public class Database {
         final List<Map<String,Collection<String>>> nonPlaceMaps = Collections.synchronizedList(new ArrayList<>(allDataMaps));
         nonPlaceMaps.remove(populatedPlaceToLocationsMap);
 
-        Collection<String> poiToLocations = Collections.synchronizedSet(new HashSet<>());
-        AtomicLong cnt = new AtomicLong(0);
-        final long totalCnt = nonPlaceMaps.stream().mapToLong(n->n.size()).sum();
-        database.setPois(database.getPois().stream().filter(poi->populatedPlaceToLocationsMap.containsKey(poi.getTitle())).collect(Collectors.toList()));
-
-        Graph linkGraph = new BayesianNet();
-        nonPlaceMaps.parallelStream().forEach(map->{
-            map.forEach((title,v)->{
-                poiToLocations.add(title);
-                Node node = linkGraph.addBinaryNode(title);
-                PointOfInterest poi = database.getPoi(title);
-                if(poi.getLinks()!=null) {
-                    poi.getLinks().forEach(l -> {
-                        l = l.toUpperCase();
-                        Node lNode = linkGraph.addBinaryNode(l);
-                        linkGraph.connectNodes(node, lNode);
-                    });
-                }
-                if(cnt.getAndIncrement()%10000==9999) {
-                    System.out.println("Node: "+node.getLabel()+" => "+poi.getLinks());
-                    System.out.println("Found "+cnt.get()+" out of "+totalCnt);
-                }
-            });
-        });
-
-        System.out.println("Pois matched: "+poiToLocations.size());
         System.out.println("States matched: "+stateLinksMap.size()+ " out of "+states.size());
         System.out.println("State links: "+stateLinks.size());
 
         Set<String> statesCopy = new HashSet<>(states);
         statesCopy.removeAll(stateLinksMap.keySet());
         System.out.println("Missing states: "+String.join("; ",statesCopy));
+
         //System.out.println("Top missing tags: "+String.join("\n",counts.entrySet().stream().sorted((e1,e2)->e2.getValue().compareTo(e1.getValue())).limit(100)
         //.map(e->e.getKey()+": "+e.getValue()).collect(Collectors.toList())));
         System.out.println("Num missing: "+missing.get()+" out of "+total);
         System.out.println("Num census designated places: "+censusDesignatedPlaceLocationsMap.size());
         System.out.println("Num former populated places: "+formerPopulatedPlaceToLocationsMap.size());
         System.out.println("Num stadiums: "+stadiumToLocationsMap.size());
+        System.out.println("Num museums: "+museumToLocationsMap.size());
         System.out.println("Num sculptures: "+sculptureToLocationsMap.size());
         System.out.println("Num islands: "+islandToLocationsMap.size());
-        System.out.println("Num radio stations: "+radioStationToLocationsMap.size());
+        //System.out.println("Num radio stations: "+radioStationToLocationsMap.size());
         System.out.println("Num protected areas: "+protectedAreaToLocationsMap.size());
         System.out.println("Num bridges: "+bridgeToLocationsMap.size());
         System.out.println("Num hotels: "+hotelToLocationsMap.size());
@@ -349,6 +349,7 @@ public class Database {
 
         //Map<String,Collection<String>> groupedPopulatedPlaces = groupMaps(populatedPlaceToLocationsMap,Arrays.asList(cityToLocationsMap,touristAttractionsToLocationsMap,countyToLocationsMap,villageToLocationsMap,districtToLocationsMap,villageToLocationsMap,municipalityToLocationsMap,formerMunicipalityToLocationsMap));
         //System.out.println("Matched grouped places: "+groupedPopulatedPlaces.size());
+
 
   }
 }

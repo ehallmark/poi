@@ -60,6 +60,22 @@ public class CreateShapefiles {
         return LOCATION;
     }
 
+    private static double toRangeRadian(double in) {
+        return toRange(in, -Math.PI, Math.PI);
+    }
+
+    private static double toRange(double in, double start, double end) {
+        if(in>=start&&in<=end) return in;
+        double period = end - start;
+        while(in < start) {
+            in+=period;
+        }
+        while(in > end) {
+            in-=period;
+        }
+        return in;
+    }
+
     public static void createShapefile(List<PointOfInterest> pointOfInterests, File newFile) throws Exception {
         /*
          * We use the DataUtilities class to create a FeatureType that will describe the data in our
@@ -88,8 +104,8 @@ public class CreateShapefiles {
         //layer.getBounds()
 
         pointOfInterests.forEach(poi->{
-            double latitude = poi.getLatitude()*58;
-            double longitude = poi.getLongitude()*57;
+            double latitude = toRangeRadian(poi.getLatitude());
+            double longitude = toRangeRadian(poi.getLongitude());
             String name = poi.getTitle();
             int number = poi.getLinks()==null?0:poi.getLinks().size();
 
@@ -166,8 +182,8 @@ public class CreateShapefiles {
 
 
     public static void main(String[] args) throws Exception {
-        Database database = new Database(Database.load(Database.dataFile));
-        database.init();
+        Database database = new Database(Database.load(Database.labeledDataFile));
+        database.init(true);
         createShapefile(database.getPois(),poiShapeFile);
     }
 }

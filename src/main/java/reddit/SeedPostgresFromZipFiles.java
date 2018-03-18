@@ -21,10 +21,8 @@ public class SeedPostgresFromZipFiles {
     public static void main(String[] args) {
         final boolean debug = false;
 
-        final File redditDataDir = new File("reddit_comments");
-
         // download missing files from http://files.pushshift.io/reddit/comments/
-        LocalDate startDate = LocalDate.of(2005,12,1);
+        LocalDate startDate = LocalDate.of(2013,1,1); // END LocalDate.of(2005,12,1);
         final String urlPrefix = "http://files.pushshift.io/reddit/comments/";
         List<LocalDate> dates = Collections.synchronizedList(new ArrayList<>());
         while(startDate.isBefore(LocalDate.now())) {
@@ -35,18 +33,8 @@ public class SeedPostgresFromZipFiles {
         dates.forEach(date->{
             String suffix = "RC_"+date.getYear()+"-"+datePadding(date.getMonthValue())+".bz2";
             String urlStr = urlPrefix+suffix;
-            File file = new File(redditDataDir,suffix);
-            if(!file.exists()) {
-                System.out.println("Downloading:" +urlPrefix);
-                try {
-                    ZipStream.downloadFileFromUrlToFile(new URL(urlStr), file);
-                } catch(Exception e) {
-                    System.out.println("Error downloading url...");
-                    e.printStackTrace();
-                }
-            }
-
-            try (BufferedReader reader = ZipStream.getBufferedReaderForCompressedFile(file.getAbsolutePath())) {
+            try (BufferedReader reader = ZipStream.getCompressedBufferedReaderForInputStream(new URL(urlStr).openStream())) {
+                System.out.println("Starting file: "+urlStr);
                 reader.lines().forEach(line->{
                     Comment comment = new Gson().fromJson(line,Comment.class);
                     if(comment!=null) {
@@ -65,15 +53,11 @@ public class SeedPostgresFromZipFiles {
                     }
                 });
 
-                System.out.println("Successfully completed file: "+file.getName());
+                System.out.println("Successfully completed file: "+urlStr);
                 Postgres.commit();
 
             } catch(Exception e) {
                 e.printStackTrace();
-            } finally {
-                if(file.exists()) {
-                    file.delete();
-                }
             }
         });
     }

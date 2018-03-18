@@ -10,9 +10,15 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
 public class ZipStream {
-    public static BufferedReader getBufferedReaderForCompressedFile(String fileIn) throws FileNotFoundException, CompressorException {
-        BufferedReader br2 = new BufferedReader(new InputStreamReader(getInputStreamForCompressedFile(fileIn)));
+    public static BufferedReader getCompressedBufferedReaderForInputStream(InputStream inputStream) throws FileNotFoundException, CompressorException {
+        BufferedReader br2 = new BufferedReader(new InputStreamReader(getInputStreamForCompressedInputStream(inputStream)));
         return br2;
+    }
+
+    public static InputStream getInputStreamForCompressedInputStream(InputStream in) throws FileNotFoundException, CompressorException {
+        BufferedInputStream bis = new BufferedInputStream(in);
+        CompressorInputStream input = new CompressorStreamFactory().createCompressorInputStream(bis);
+        return input;
     }
 
     public static InputStream getInputStreamForCompressedFile(String fileIn) throws FileNotFoundException, CompressorException {
@@ -29,10 +35,4 @@ public class ZipStream {
     }
 
 
-    // TEST
-    public static void main(String[] args) throws Exception {
-        getBufferedReaderForCompressedFile("/home/ehallmark/Downloads/RC_2005-12.bz2").lines().forEach(line->{
-            System.out.println("Line: "+line);
-        });
-    }
 }

@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 
-public class Word2Vec {
-    private static final File modelFile = new File("word2vec_model.nn");
+public class WikiWord2Vec {
+    public static final File modelFile = new File("word2vec_model.nn");
     private static final int BATCH_SIZE = 512;
     private static final int VECTOR_SIZE = 512;
     @Getter

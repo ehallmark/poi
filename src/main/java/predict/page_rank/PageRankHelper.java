@@ -16,8 +16,8 @@ public class PageRankHelper {
     public static void main(String[] args) {
         long t1 = System.currentTimeMillis();
 
-        final Database database = new Database(Database.load(Database.dataFile));
-        database.init();
+        final Database database = new Database(Database.load(Database.labeledDataFile));
+        database.init(true);
 
         Map<String,Collection<String>> linkMap = Collections.synchronizedMap(new HashMap<>());
         database.getPois().forEach(poi->{

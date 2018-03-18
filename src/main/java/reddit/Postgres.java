@@ -1,6 +1,8 @@
 package main.java.reddit;
 
 import java.sql.*;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -44,9 +46,16 @@ public class Postgres {
     }
 
     public static void iterate(Consumer<Comment> consumer) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality,c2.text as parent_text from comments as c1 join comments as c2 on ('t1_'||c2.id=c1.parent_id)");
+        //PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality,c2.text as parent_text from comments as c1 join comments as c2 on ('t1_'||c2.id=c1.parent_id)");
+        PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality from comments as c1");
         ps.setFetchSize(100);
         ResultSet rs = ps.executeQuery();
+        Map<String,Comment> messageCacheF = new HashMap<>();
+        Map<String,Comment> messageCacheR = new HashMap<>();
+        List<String> cachedF = new LinkedList<>();
+        List<String> cachedR = new LinkedList<>();
+        final int maxCacheSize = 1000000;
+        long seen = 0;
         while(rs.next()) {
             Comment comment = new Comment();
             comment.setId(rs.getString(1));
@@ -58,8 +67,63 @@ public class Postgres {
             comment.setUps(rs.getInt(7));
             comment.setAuthor(rs.getString(8));
             comment.setControversiality(rs.getInt(9));
-            comment.setParent_body(rs.getString(10));
+            {
+                if (messageCacheF.containsKey(comment.getParent_id())) {
+                    comment.setParent_body(messageCacheF.get(comment.getParent_id()).getBody());
+                }
+                String typeIdF = "t1_" + comment.getId();
+                cachedF.add(typeIdF);
+                messageCacheF.put(typeIdF,comment);
+                if(cachedF.size()>maxCacheSize) {
+                    messageCacheF.remove(cachedF.remove(0));
+                }
+            }
+            {
+                String typeIdR = "t1_" + comment.getId();
+                if (messageCacheR.containsKey(typeIdR)) {
+                    Comment childComment = messageCacheR.get(typeIdR);
+                    childComment.setParent_body(comment.getBody());
+                    consumer.accept(childComment);
+                }
+                cachedR.add(comment.getParent_id());
+                messageCacheR.put(comment.getParent_id(),comment);
+                if(cachedR.size()>maxCacheSize) {
+                    messageCacheR.remove(cachedR.remove(0));
+                }
+            }
+            if(comment.getParent_body()!=null) {
+                consumer.accept(comment);
+            }
+
+            if(seen%100000==99999) {
+                System.out.println("Cached "+seen);
+            }
+            seen++;
+        }
+        rs.close();
+        ps.close();
+    }
+
+    public static void iterateNoParents(Consumer<Comment> consumer, int sampling) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("select c1.id,c1.parent_id,c1.subreddit_id,c1.link_id,c1.text,c1.score,c1.ups,c1.author,c1.controversiality from comments as c1");
+        ps.setFetchSize(100);
+        ResultSet rs = ps.executeQuery();
+        AtomicLong cnt = new AtomicLong(0);
+        while(rs.next()&&(sampling<=0||cnt.get()<sampling)) {
+            Comment comment = new Comment();
+            comment.setId(rs.getString(1));
+            comment.setParent_id(rs.getString(2));
+            comment.setSubreddit_id(rs.getString(3));
+            comment.setLink_id(rs.getString(4));
+            comment.setBody(rs.getString(5));
+            comment.setScore(rs.getInt(6));
+            comment.setUps(rs.getInt(7));
+            comment.setAuthor(rs.getString(8));
+            comment.setControversiality(rs.getInt(9));
             consumer.accept(comment);
+            if(cnt.getAndIncrement()%10000==9999) {
+                System.out.println("Iterated over: "+cnt.get()+" out of "+sampling);
+            }
         }
         rs.close();
         ps.close();
