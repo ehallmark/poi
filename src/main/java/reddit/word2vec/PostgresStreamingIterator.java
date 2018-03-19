@@ -93,7 +93,7 @@ public class PostgresStreamingIterator implements SequenceIterator<VocabWord> {
     }
 
     public static String preprocessText(String text) {
-        return text.toLowerCase().replace("[^a-z ]"," ");
+        return text.toLowerCase().replaceAll("[^a-z ]"," ");
     }
 
 

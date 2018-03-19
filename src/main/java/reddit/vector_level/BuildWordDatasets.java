@@ -39,7 +39,7 @@ public class BuildWordDatasets {
     }
 
     private static String[] cleanInputToWords(String textStr, Word2Vec word2Vec) {
-        return Arrays.stream(textStr.replace("[^a-z ]"," ").toLowerCase().split("\\s+"))
+        return Arrays.stream(textStr.replaceAll("[^a-z ]"," ").toLowerCase().split("\\s+"))
                 .filter(word2Vec::hasWord).toArray(size->new String[size]);
     }
 

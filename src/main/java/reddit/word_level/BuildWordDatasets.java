@@ -38,7 +38,7 @@ public class BuildWordDatasets {
     }
 
     private static String[] cleanInputToWords(String textStr) {
-        return (textStr.replace("[^a-z ]"," ").toLowerCase()+" "+END_TOKEN).split("\\s+");
+        return (textStr.replaceAll("[^a-z ]"," ").toLowerCase()+" "+END_TOKEN).split("\\s+");
     }
 
     public static Pair<Pair<float[][],float[]>,Pair<float[][],float[]>> textToVec(String textStr, String textStr2, int maxSentenceLength, Map<String,Integer> vocabMap, int unknownIdx) {

@@ -55,9 +55,9 @@ public class RedditWord2Vec {
         double sampling = 0.0001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
-        double learningRate =  0.05;
+        double learningRate =   0.05;
         double minLearningRate = 0.001;
-        int vocabSampling = 50000000;
+        int vocabSampling = 100000000;
 
         try {
             System.out.println("Trying to load model....");
