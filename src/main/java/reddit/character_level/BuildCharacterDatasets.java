@@ -59,11 +59,13 @@ public class BuildCharacterDatasets {
         }
 
         INDArray mask = Nd4j.ones(maxSentenceLength);
+        INDArray mask2 = Nd4j.zeros(maxSentenceLength);
         int window = rand.nextInt(windowSize-1)+1; // random prediction window
         if(text.length()<window*2) return null;
+
         int randPrediction = rand.nextInt(text.length()-window);
-        mask.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(1f);
-        INDArray mask2 = Nd4j.ones(maxSentenceLength).subi(mask);
+        mask.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(0f);
+        mask2.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(1f);
 
         INDArray x = Nd4j.create(VALID_CHARS.length,maxSentenceLength);
         int i = 0;
