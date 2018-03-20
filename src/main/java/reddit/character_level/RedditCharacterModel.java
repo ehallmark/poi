@@ -6,6 +6,7 @@ import main.java.util.Function2;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.*;
+import org.deeplearning4j.nn.conf.layers.GravesBidirectionalLSTM;
 import org.deeplearning4j.nn.conf.layers.GravesLSTM;
 import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
 import org.deeplearning4j.nn.graph.ComputationGraph;
@@ -18,6 +19,7 @@ import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.learning.config.RmsProp;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.io.File;
@@ -63,11 +65,11 @@ public class RedditCharacterModel {
 
         final int testIters = 100;
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
-        final int hiddenLayerSize = 64;
-        final int numEpochs = 3;
+        final int hiddenLayerSize = 128;
+        final int numEpochs = 1;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
-                .learningRate(0.01)//0.05
+                .learningRate(0.05)
                 .weightInit(WeightInit.XAVIER)
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
                 .iterations(1)
@@ -76,15 +78,14 @@ public class RedditCharacterModel {
                 //.cacheMode(CacheMode.DEVICE)
                 .activation(Activation.TANH)
                 .miniBatch(true)
-                .updater(Updater.RMSPROP)
+                .updater(new RmsProp(0.95))
                 .graphBuilder()
                 .addInputs("x1")
                 //.backpropType(BackpropType.TruncatedBPTT)
                 //.tBPTTBackwardLength(100)
-                .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
-                //.addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
-                //.addLayer("r3", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r2")
-                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).activation(Activation.SOFTMAX).nIn(hiddenLayerSize+numChars).nOut(numChars).build(),"r1","x1")
+                .addLayer("r1", new GravesBidirectionalLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
+                .addLayer("r2", new GravesBidirectionalLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
+                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).activation(Activation.SOFTMAX).nIn(hiddenLayerSize).nOut(numChars).build(),"r2")
                 .setOutputs("y1")
                 .build();
 
@@ -126,7 +127,7 @@ public class RedditCharacterModel {
                 double s = net.score(ds,false);
                 score+=s;
                 //System.out.println(s);
-                count++;//ds.getFeatures(0).shape()[0];
+                count++;//ds.getFeatures(0).shape()[1];
             }
             return (score/count);
         };
@@ -139,7 +140,6 @@ public class RedditCharacterModel {
 
         FileMultiMinibatchIterator iterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.trainDir,-1,MINI_BATCH_SIZE,false);
         iterator.setCompressed(true);
-        AtomicLong iter = new AtomicLong(0);
         for(int i = 0; i < numEpochs; i++) {
             while (iterator.hasNext()) {
                 org.nd4j.linalg.dataset.api.MultiDataSet ds = iterator.next();

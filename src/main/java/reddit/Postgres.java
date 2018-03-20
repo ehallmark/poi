@@ -27,8 +27,11 @@ public class Postgres {
     }
 
     private static final AtomicLong ingestCnt = new AtomicLong(0);
-    public static void ingest(Comment comment) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement("insert into comments (id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality) values (?,?,?,?,?,?,?,?,?) on conflict (id) do nothing");
+    private static PreparedStatement ps;
+    public synchronized static void ingest(Comment comment) throws SQLException {
+        if(ps==null) {
+            ps = conn.prepareStatement("insert into comments (id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality) values (?,?,?,?,?,?,?,?,?) on conflict (id) do nothing");
+        }
         ps.setString(1,comment.getId());
         ps.setString(2,comment.getParent_id());
         ps.setString(3,comment.getSubreddit_id());
@@ -42,7 +45,6 @@ public class Postgres {
         if(ingestCnt.getAndIncrement()%10000==9999) {
             commit();
         }
-        ps.close();
     }
 
     public static void iterate(Consumer<Comment> consumer) throws SQLException {

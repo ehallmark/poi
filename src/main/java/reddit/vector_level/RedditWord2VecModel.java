@@ -26,7 +26,7 @@ import java.util.function.Function;
 
 //import org.nd4j.jita.conf.CudaEnvironment;
 
-public class RedditWordModel {
+public class RedditWord2VecModel {
     private static final File modelFile = new File("reddit_word_level_model.nn");
     private static final int MINI_BATCH_SIZE = 64;
     private static ComputationGraph net;
@@ -61,7 +61,7 @@ public class RedditWordModel {
         }*/
 
         final int testIters = 100;
-        final int numChars = BuildWordDatasets.VOCAB_SIZE;
+        final int numChars = BuildWord2VecDatasets.VOCAB_SIZE;
         final int hiddenLayerSize = 64;
         final int numEpochs = 3;
 
@@ -110,7 +110,7 @@ public class RedditWordModel {
         };
 
         List<org.nd4j.linalg.dataset.api.MultiDataSet> testSets = new ArrayList<>();
-        FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildWordDatasets.devDir,10,-1,true);
+        FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildWord2VecDatasets.devDir,10,-1,true);
         testIterator.setCompressed(true);
         int c = 0;
         while(testIterator.hasNext()&&c<10) {
@@ -136,7 +136,7 @@ public class RedditWordModel {
 
         net.setListeners(listener);
 
-        FileMultiMinibatchIterator iterator = new FileMultiMinibatchIterator(BuildWordDatasets.trainDir,-1,MINI_BATCH_SIZE,false);
+        FileMultiMinibatchIterator iterator = new FileMultiMinibatchIterator(BuildWord2VecDatasets.trainDir,-1,MINI_BATCH_SIZE,false);
         iterator.setCompressed(true);
         AtomicLong iter = new AtomicLong(0);
         for(int i = 0; i < numEpochs; i++) {
