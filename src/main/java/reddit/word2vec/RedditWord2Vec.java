@@ -55,8 +55,8 @@ public class RedditWord2Vec {
         double sampling = 0.0001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
-        double learningRate =   0.05;
-        double minLearningRate = 0.001;
+        double learningRate =  0.001;// 0.05;
+        double minLearningRate = 0.00001;//0.001;
         int vocabSampling = 100000000;
 
         try {

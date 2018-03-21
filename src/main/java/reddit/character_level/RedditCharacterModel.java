@@ -62,13 +62,14 @@ public class RedditCharacterModel {
             e.printStackTrace();
         }
 
-        final int testIters = 100;
+        final int testIters = 500;
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
         final int hiddenLayerSize = 128;
         final int numEpochs = 1;
+        final double learningRate = 0.005; //0.05;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
-                .learningRate(0.05)
+                .learningRate(learningRate)
                 .weightInit(WeightInit.XAVIER)
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
                 .iterations(1)
