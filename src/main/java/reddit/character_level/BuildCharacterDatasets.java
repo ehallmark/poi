@@ -39,7 +39,7 @@ public class BuildCharacterDatasets {
         }
     }
     public static final int MAX_SENTENCE_LENGTH = 128; // max length of an input...
-    public static final int WINDOW_SIZE = 10; // max length of an input...
+    public static final int WINDOW_SIZE = 10; // max length of prediction
     public static final String baseName = "dataset-";
     public static final File trainDir = new File("reddit_datasets_train/");
     public static final File testDir = new File("reddit_datasets_test/");
@@ -66,7 +66,7 @@ public class BuildCharacterDatasets {
             for (int j = 0; j < l; j++) {
                 if(mask1d[i*l+j]>0) {
                     chars[j] = VALID_CHARS[indices[i*l+j]];
-                    System.out.println("Char \'"+chars[j]+"\': "+max[i*l+j]);
+                    //System.out.println("Char \'"+chars[j]+"\': "+max[i*l+j]);
                 } else {
                     chars[j] = '*';
                 }
