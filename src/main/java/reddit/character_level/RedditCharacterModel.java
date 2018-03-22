@@ -7,11 +7,13 @@ import main.java.util.Function2;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.*;
 import org.deeplearning4j.nn.conf.layers.GravesBidirectionalLSTM;
+import org.deeplearning4j.nn.conf.layers.GravesLSTM;
 import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.util.ModelSerializer;
+//import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.buffer.DataBuffer;
@@ -30,7 +32,7 @@ import java.util.function.Function;
 
 public class RedditCharacterModel {
     private static final File modelFile = new File("reddit_character_level_model.nn");
-    private static final int MINI_BATCH_SIZE = 128;
+    private static final int MINI_BATCH_SIZE = 64;
     private static ComputationGraph net;
     private static void save(ComputationGraph net) {
         try {
@@ -40,7 +42,7 @@ public class RedditCharacterModel {
         }
     }
 
-    private static ComputationGraph load() {
+    public static ComputationGraph load() {
         try {
             net = ModelSerializer.restoreComputationGraph(modelFile);
         } catch(Exception e) {
@@ -62,11 +64,11 @@ public class RedditCharacterModel {
             e.printStackTrace();
         }
 
-        final int testIters = 500;
+        final int testIters = 100;
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
-        final int hiddenLayerSize = 128;
+        final int hiddenLayerSize = 256;
         final int numEpochs = 1;
-        final double learningRate = 0.005; //0.05;
+        final double learningRate = 0.1;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
                 .learningRate(learningRate)
@@ -83,8 +85,9 @@ public class RedditCharacterModel {
                 .addInputs("x1")
                 //.backpropType(BackpropType.TruncatedBPTT)
                 //.tBPTTBackwardLength(100)
-                .addLayer("r1", new GravesBidirectionalLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
-                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.XENT).activation(Activation.SOFTMAX).nIn(hiddenLayerSize+numChars).nOut(numChars).build(),"r1","x1")
+                .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
+                .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
+                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.XENT).activation(Activation.SOFTMAX).nIn(hiddenLayerSize).nOut(numChars).build(),"r2")
                 .setOutputs("y1")
                 .build();
 
