@@ -56,7 +56,7 @@ public class RedditCharacterModel {
     public static void main(String[] args) {
         Nd4j.setDataType(DataBuffer.Type.DOUBLE);
         try {
-            Nd4j.getMemoryManager().setAutoGcWindow(500);
+            Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
                     .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
                     .setMaximumDeviceCache(10L * 1024 * 1024 * 1024L)
@@ -70,7 +70,7 @@ public class RedditCharacterModel {
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
         final int hiddenLayerSize = 256;
         final int numEpochs = 1;
-        final double learningRate = 0.1;
+        final double learningRate = 0.05;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
                 .learningRate(learningRate)
@@ -87,8 +87,8 @@ public class RedditCharacterModel {
                 .addInputs("x1")
                 //.backpropType(BackpropType.TruncatedBPTT)
                 //.tBPTTBackwardLength(100)
-                .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
-                .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
+                .addLayer("r1", new GravesBidirectionalLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
+                .addLayer("r2", new GravesBidirectionalLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
                 .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.XENT).activation(Activation.SOFTMAX).nIn(hiddenLayerSize).nOut(numChars).build(),"r2")
                 .setOutputs("y1")
                 .build();
@@ -153,9 +153,9 @@ public class RedditCharacterModel {
                 INDArray vec = testDs.getFeatures(0);
                 vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]);
                 INDArray mask = testDs.getFeaturesMaskArray(0);
-                mask.assign(0);
+                //mask.assign(0);
                 INDArray labelMask = testDs.getLabelsMaskArray(0);
-                labelMask.assign(1);
+                //labelMask.assign(1);
                 String[] newText = BuildCharacterDatasets.vectorsToStrings(vec, mask);
                 System.out.println("Text: " + text);
                 System.out.println("New Text: " + newText[0]);

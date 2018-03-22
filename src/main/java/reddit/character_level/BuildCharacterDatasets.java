@@ -88,7 +88,7 @@ public class BuildCharacterDatasets {
         int window = rand.nextInt(windowSize-1)+1; // random prediction window
         if(text.length()<window*2) return null;
 
-        int randPrediction = text.length()-window;
+        int randPrediction = rand.nextInt(text.length()-window);
         mask.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(0f);
         mask2.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(1f);
 
