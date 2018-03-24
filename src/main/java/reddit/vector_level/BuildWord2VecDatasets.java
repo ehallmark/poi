@@ -7,6 +7,7 @@ import main.java.reddit.Postgres;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.MultiDataSet;
 import org.nd4j.linalg.factory.Nd4j;
@@ -24,7 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class BuildWord2VecDatasets {
-    public static final int MAX_SENTENCE_LENGTH = 16; // max length of an input...
+    public static final int MAX_SENTENCE_LENGTH = 32; // max length of an input...
     public static final int VOCAB_SIZE = 5000;
     public static final String baseName = "dataset-";
     public static final File trainDir = new File("reddit_vec_datasets_train/");
@@ -70,6 +71,7 @@ public class BuildWord2VecDatasets {
     }
 
     public static void main(String[] args) throws Exception {
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
         Word2Vec word2Vec = WordVectorSerializer.readWord2VecModel(WikiWord2Vec.modelFile);
 
         Function<List<Pair<Pair<INDArray,INDArray>,Pair<INDArray,INDArray>>>,MultiDataSet> pairsToDatasetFunction = pairs -> {

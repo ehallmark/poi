@@ -54,7 +54,7 @@ public class RedditCharacterModel {
     }
 
     public static void main(String[] args) {
-        Nd4j.setDataType(DataBuffer.Type.DOUBLE);
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
@@ -70,7 +70,7 @@ public class RedditCharacterModel {
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
         final int hiddenLayerSize = 256;
         final int numEpochs = 1;
-        final double learningRate = 0.05;
+        final double learningRate = 0.025;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
                 .learningRate(learningRate)
@@ -87,9 +87,10 @@ public class RedditCharacterModel {
                 .addInputs("x1")
                 //.backpropType(BackpropType.TruncatedBPTT)
                 //.tBPTTBackwardLength(100)
-                .addLayer("r1", new GravesBidirectionalLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
-                .addLayer("r2", new GravesBidirectionalLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
-                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.XENT).activation(Activation.SOFTMAX).nIn(hiddenLayerSize).nOut(numChars).build(),"r2")
+                .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
+                .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize+numChars).nOut(hiddenLayerSize).build(),"r1","x1")
+                //.addLayer("r3", new GravesBidirectionalLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r2", "r1")
+                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.XENT).activation(Activation.SOFTMAX).nIn(hiddenLayerSize+hiddenLayerSize).nOut(numChars).build(),"r2","r1")
                 .setOutputs("y1")
                 .build();
 
@@ -117,15 +118,6 @@ public class RedditCharacterModel {
 
 
         List<org.nd4j.linalg.dataset.api.MultiDataSet> testSets = new ArrayList<>();
-        FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.devDir,10,-1,true);
-        testIterator.setCompressed(true);
-        int c = 0;
-        while(testIterator.hasNext()&&c<10) {
-            testSets.add(testIterator.next());
-            c++;
-            System.out.println("Loaded test set "+c);
-        }
-        testIterator.reset();
         String[] testTexts = new String[]{
                 "hello my name is Evan.",
                 "this is another Example",
@@ -137,6 +129,18 @@ public class RedditCharacterModel {
         for(int i = 0; i < testDsArray.length; i++) {
             testDsArray[i]=BuildCharacterDatasets.textToVec(testTexts[i],10,128);
         }
+
+        FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.devDir,10,-1,true);
+        testIterator.setCompressed(true);
+        int c = 0;
+        while(testIterator.hasNext()&&c<8) {
+            testSets.add(testIterator.next());
+            c++;
+            System.out.println("Loaded test set "+c);
+            System.gc();
+        }
+        testIterator.reset();
+
         Function<Object,Double> testErrorFunction = obj -> {
             double score = 0d;
             int count = 0;
@@ -179,8 +183,28 @@ public class RedditCharacterModel {
                 score+=s;
                 //System.out.println(s);
                 count++;
+                System.gc();
             }
+            System.gc();
             testIterator.reset();
+            for(int i = 0; i < testDsArray.length; i++) {
+                MultiDataSet testDs = testDsArray[i];
+                String text = testTexts[i];
+                INDArray vec = testDs.getFeatures(0);
+                vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]);
+                INDArray mask = testDs.getFeaturesMaskArray(0);
+                //mask.assign(0);
+                INDArray labelMask = testDs.getLabelsMaskArray(0);
+                //labelMask.assign(1);
+                String[] newText = BuildCharacterDatasets.vectorsToStrings(vec, mask);
+                System.out.println("Text: " + text);
+                System.out.println("New Text: " + newText[0]);
+                net.setLayerMaskArrays(new INDArray[]{mask}, new INDArray[]{labelMask});
+                INDArray output = net.output(vec)[0];
+                net.clearLayerMaskArrays();
+                String predictedText = BuildCharacterDatasets.vectorsToStrings(output, labelMask)[0];
+                System.out.println("Predicted Text: " + predictedText);
+            }
             return (score/count);
         };*/
 
@@ -200,6 +224,7 @@ public class RedditCharacterModel {
                 //System.out.println("Labels: "+ ds.getLabels(0).get(NDArrayIndex.point(0),NDArrayIndex.all(),NDArrayIndex.point(0)).toString());
                 //System.out.println("LMask: "+ ds.getLabelsMaskArray(0).getRow(0).toString());
                 net.fit(ds);
+                System.gc();
             }
             System.out.println("Finished epoch: "+(i+1));
             iterator.reset();

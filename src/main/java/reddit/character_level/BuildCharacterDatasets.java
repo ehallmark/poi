@@ -24,10 +24,9 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class BuildCharacterDatasets {
-    public static final char END_TOKEN = 'E';
     public static final char UNK_TOKEN = 'U';
     private static final int UNK_TOKEN_IDX;
-    public static final char[] VALID_CHARS = new char[]{'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',' ',',','?','!','.',UNK_TOKEN, END_TOKEN };
+    public static final char[] VALID_CHARS = new char[]{'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',' ',',','?','!','.',UNK_TOKEN };
     private static final Map<Character,Integer> CHAR_IDX_MAP = new HashMap<>(VALID_CHARS.length);
     static {
         Arrays.sort(VALID_CHARS);
@@ -38,8 +37,8 @@ public class BuildCharacterDatasets {
             vec.putScalar(i,1f);
         }
     }
-    public static final int MAX_SENTENCE_LENGTH = 128; // max length of an input...
-    public static final int WINDOW_SIZE = 10; // max length of prediction
+    public static final int MAX_SENTENCE_LENGTH = 140; // max length of an input...
+    public static final int WINDOW_SIZE = 5; // max length of prediction
     public static final String baseName = "dataset-";
     public static final File trainDir = new File("reddit_datasets_train/");
     public static final File testDir = new File("reddit_datasets_test/");
@@ -77,7 +76,7 @@ public class BuildCharacterDatasets {
     }
 
     public static MultiDataSet textToVec(String text, int windowSize, int maxSentenceLength) {
-        text = String.join(" ",text.toLowerCase().split("\\s+"))+END_TOKEN;
+        text = String.join(" ",text.toLowerCase().split("\\s+"));
         if(text.length()>maxSentenceLength) {
             int randStart = rand.nextInt(text.length()-maxSentenceLength);
             text = text.substring(randStart,randStart+maxSentenceLength);
@@ -88,7 +87,7 @@ public class BuildCharacterDatasets {
         int window = rand.nextInt(windowSize-1)+1; // random prediction window
         if(text.length()<window*2) return null;
 
-        int randPrediction = rand.nextInt(text.length()-window);
+        int randPrediction = text.length()-window;
         mask.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(0f);
         mask2.get(NDArrayIndex.interval(randPrediction,randPrediction+window)).assign(1f);
 
@@ -118,7 +117,7 @@ public class BuildCharacterDatasets {
 
 
     public static void main(String[] args) throws Exception {
-        Nd4j.setDataType(DataBuffer.Type.DOUBLE);
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(500);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
