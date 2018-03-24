@@ -55,8 +55,8 @@ public class BuildWord2VecDatasets {
         mask.get(NDArrayIndex.interval(text.length,maxSentenceLength*2)).assign(0);
 
         INDArray input = Nd4j.create(maxSentenceLength*2,word2Vec.getLayerSize());
-        input.get(NDArrayIndex.interval(text.length,maxSentenceLength*2)).assign(0);
-        input.get(NDArrayIndex.interval(0,text.length)).assign(word2Vec.getWordVectors(Arrays.asList(text)));
+        input.get(NDArrayIndex.interval(text.length,maxSentenceLength*2),NDArrayIndex.all()).assign(0);
+        input.get(NDArrayIndex.interval(0,text.length),NDArrayIndex.all()).assign(word2Vec.getWordVectors(Arrays.asList(text)));
 
         INDArray mask2 = Nd4j.create(maxSentenceLength*2);
         mask2.get(NDArrayIndex.interval(0,text.length)).assign(0);
@@ -64,8 +64,8 @@ public class BuildWord2VecDatasets {
         if(text.length+text2.length<maxSentenceLength*2) mask2.get(NDArrayIndex.interval(text.length+text2.length,maxSentenceLength*2)).assign(0);
 
         INDArray input2 = Nd4j.create(maxSentenceLength*2,word2Vec.getLayerSize());
-        input2.get(NDArrayIndex.all(),NDArrayIndex.interval(0,text.length)).assign(0);
-        input2.get(NDArrayIndex.all(),NDArrayIndex.interval(text.length,text.length+text2.length)).assign(word2Vec.getWordVectors(Arrays.asList(text2)));
+        input2.get(NDArrayIndex.interval(0,text.length),NDArrayIndex.all()).assign(0);
+        input2.get(NDArrayIndex.interval(text.length,text.length+text2.length),NDArrayIndex.all()).assign(word2Vec.getWordVectors(Arrays.asList(text2)));
         if(text.length+text2.length<maxSentenceLength*2) mask2.get(NDArrayIndex.all(),NDArrayIndex.interval(text.length+text2.length,maxSentenceLength*2)).assign(0);
         return new Pair<>(new Pair<>(input,mask),new Pair<>(input2,mask2));
     }
