@@ -86,10 +86,10 @@ public class BuildWord2VecDatasets {
             AtomicInteger idx = new AtomicInteger(0);
             pairs.forEach(pair->{
                 int i = idx.getAndIncrement();
-                input.get(NDArrayIndex.point(i),NDArrayIndex.all(),NDArrayIndex.interval(0,MAX_SENTENCE_LENGTH)).assign(pair.getFirst().getFirst().transposei());
-                output.get(NDArrayIndex.point(i),NDArrayIndex.all(),NDArrayIndex.interval(MAX_SENTENCE_LENGTH,MAX_SENTENCE_LENGTH*2)).assign(pair.getSecond().getFirst().transposei());
-                inputMask.get(NDArrayIndex.point(i),NDArrayIndex.interval(0,MAX_SENTENCE_LENGTH)).assign(pair.getFirst().getSecond());
-                outputMask.get(NDArrayIndex.point(i),NDArrayIndex.interval(MAX_SENTENCE_LENGTH,MAX_SENTENCE_LENGTH*2)).assign(pair.getSecond().getSecond());
+                input.get(NDArrayIndex.point(i),NDArrayIndex.all(),NDArrayIndex.all()).assign(pair.getFirst().getFirst().transposei());
+                output.get(NDArrayIndex.point(i),NDArrayIndex.all(),NDArrayIndex.all()).assign(pair.getSecond().getFirst().transposei());
+                inputMask.get(NDArrayIndex.point(i),NDArrayIndex.all()).assign(pair.getFirst().getSecond());
+                outputMask.get(NDArrayIndex.point(i),NDArrayIndex.all()).assign(pair.getSecond().getSecond());
             });
 
             return new MultiDataSet(new INDArray[]{input},new INDArray[]{output},new INDArray[]{inputMask},new INDArray[]{outputMask});
