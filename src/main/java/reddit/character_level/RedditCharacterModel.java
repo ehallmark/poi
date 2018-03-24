@@ -13,8 +13,7 @@ import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.util.ModelSerializer;
-//import org.nd4j.jita.conf.CudaEnvironment;
-//import org.nd4j.jita.conf.CudaEnvironment;
+import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -54,7 +53,7 @@ public class RedditCharacterModel {
     }
 
     public static void main(String[] args) {
-        /*Nd4j.setDataType(DataBuffer.Type.FLOAT);
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
@@ -64,13 +63,13 @@ public class RedditCharacterModel {
                     .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
         } catch(Exception e) {
             e.printStackTrace();
-        }*/
+        }
 
         final int testIters = 100;
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
         final int hiddenLayerSize = 256;
         final int numEpochs = 1;
-        final double learningRate = 0.1;
+        final double learningRate = 0.01; //0.1;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
                 .learningRate(learningRate)

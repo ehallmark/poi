@@ -25,7 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class BuildWord2VecDatasets {
-    public static final int MAX_SENTENCE_LENGTH = 32; // max length of an input...
+    public static final int MAX_SENTENCE_LENGTH = 16; // max length of an input...
     public static final int VOCAB_SIZE = 5000;
     public static final String baseName = "dataset-";
     public static final File trainDir = new File("reddit_vec_datasets_train/");
