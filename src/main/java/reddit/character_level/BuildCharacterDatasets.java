@@ -5,7 +5,6 @@ import main.java.reddit.Comment;
 import main.java.reddit.Postgres;
 import main.java.reddit.word2vec.PostgresStreamingIterator;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.MultiDataSet;
@@ -118,16 +117,6 @@ public class BuildCharacterDatasets {
 
     public static void main(String[] args) throws Exception {
         Nd4j.setDataType(DataBuffer.Type.FLOAT);
-        try {
-            Nd4j.getMemoryManager().setAutoGcWindow(500);
-            CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
-                    .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
-                    .setMaximumDeviceCache(10L * 1024 * 1024 * 1024L)
-                    .setMaximumHostCacheableLength(2L * 1024 * 1024 * 1024L)
-                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
 
         Function<List<MultiDataSet>,MultiDataSet> pairsToDatasetFunction = pairs -> {
             INDArray input = Nd4j.create(pairs.size(),VALID_CHARS.length,MAX_SENTENCE_LENGTH);
@@ -162,11 +151,11 @@ public class BuildCharacterDatasets {
             MultiDataSet ds = commentListToDataSetFunction.apply(comment);
             if(ds!=null) {
                 if(comments.size()>=batchSize) {
-                    MultiDataSet dataSet = pairsToDatasetFunction.apply(comments);
-                    if(dataSet!=null) {
-                        File dir = sample(trainDir,testDir,devDir,0.95,0.025,0.025);
-                        File newFile = new File(dir, baseName+folderToDatasetCount.get(dir.getAbsolutePath()).getAndIncrement());
-                        if(!newFile.exists()) {
+                    File dir = sample(trainDir,testDir,devDir,0.95,0.025,0.025);
+                    File newFile = new File(dir, baseName+folderToDatasetCount.get(dir.getAbsolutePath()).getAndIncrement());
+                    if(!newFile.exists()) {
+                        MultiDataSet dataSet = pairsToDatasetFunction.apply(comments);
+                        if(dataSet!=null) {
                             if(task.get()!=null) task.get().join();
                             RecursiveAction t = new RecursiveAction() {
                                 @Override

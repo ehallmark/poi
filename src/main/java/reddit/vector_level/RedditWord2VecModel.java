@@ -27,7 +27,7 @@ import java.util.function.Function;
 //import org.nd4j.jita.conf.CudaEnvironment;
 
 public class RedditWord2VecModel {
-    private static final File modelFile = new File("reddit_word_level_model.nn");
+    private static final File modelFile = new File("reddit_word2vec_vector_level_model.nn");
     private static final int MINI_BATCH_SIZE = 64;
     private static ComputationGraph net;
     private static void save(ComputationGraph net) {
