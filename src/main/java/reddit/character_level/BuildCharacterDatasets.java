@@ -26,7 +26,7 @@ public class BuildCharacterDatasets {
     public static final char UNK_TOKEN = 'U';
     private static final int UNK_TOKEN_IDX;
     public static final char[] VALID_CHARS = new char[]{'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',' ',',','?','!','.',UNK_TOKEN };
-    private static final Map<Character,Integer> CHAR_IDX_MAP = new HashMap<>(VALID_CHARS.length);
+    public static final Map<Character,Integer> CHAR_IDX_MAP = new HashMap<>(VALID_CHARS.length);
     static {
         Arrays.sort(VALID_CHARS);
         UNK_TOKEN_IDX = Arrays.binarySearch(VALID_CHARS,UNK_TOKEN);
@@ -52,17 +52,16 @@ public class BuildCharacterDatasets {
 
     public static String[] vectorsToStrings(INDArray vec3d, INDArray mask2d) {
         if(vec3d.shape().length==2) vec3d = vec3d.reshape(1,vec3d.shape()[0],vec3d.shape()[1]);
-        if(mask2d.shape().length==1) mask2d = mask2d.reshape(1,mask2d.shape()[0]);
-        int[] mask1d = mask2d.data().asInt();
+        if(mask2d!=null&&mask2d.shape().length==1) mask2d = mask2d.reshape(1,mask2d.shape()[0]);
+        int[] mask1d = mask2d==null?null:mask2d.data().asInt();
         INDArray argMax = Nd4j.argMax(vec3d,1);
         int[] indices = argMax.data().asInt();
-        float[] max = vec3d.max(1).data().asFloat();
         String[] ret = new String[vec3d.shape()[0]];
         int l = vec3d.shape()[2];
         for(int i = 0; i < argMax.rows(); i++) {
             char[] chars = new char[l];
             for (int j = 0; j < l; j++) {
-                if(mask1d[i*l+j]>0) {
+                if(mask1d==null||mask1d[i*l+j]>0) {
                     chars[j] = VALID_CHARS[indices[i*l+j]];
                     //System.out.println("Char \'"+chars[j]+"\': "+max[i*l+j]);
                 } else {

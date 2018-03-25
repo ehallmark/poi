@@ -56,7 +56,7 @@ public class Postgres {
         Map<String,Comment> messageCacheR = new HashMap<>();
         List<String> cachedF = new LinkedList<>();
         List<String> cachedR = new LinkedList<>();
-        final int maxCacheSize = 1000000;
+        final int maxCacheSize = 100000;
         long seen = 0;
         while(rs.next()) {
             Comment comment = new Comment();
@@ -97,7 +97,8 @@ public class Postgres {
                 consumer.accept(comment);
             }
 
-            if(seen%100000==99999) {
+            if(seen%50000==49999) {
+                System.gc();
                 System.out.println("Cached "+seen);
             }
             seen++;

@@ -1,5 +1,6 @@
 package main.java.reddit.character_level;
 
+import main.java.beam_search.BeamSearch;
 import main.java.util.DefaultScoreListener;
 import main.java.util.FileMultiMinibatchIterator;
 import main.java.util.Function2;
@@ -13,16 +14,19 @@ import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.util.ModelSerializer;
-import org.nd4j.jita.conf.CudaEnvironment;
+//import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
+import org.nd4j.linalg.api.rng.distribution.impl.UniformDistribution;
 import org.nd4j.linalg.dataset.api.MultiDataSet;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.learning.config.RmsProp;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+import org.nd4j.linalg.ops.transforms.Transforms;
+import org.nd4j.linalg.primitives.Pair;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -53,7 +57,7 @@ public class RedditCharacterModel {
     }
 
     public static void main(String[] args) {
-        Nd4j.setDataType(DataBuffer.Type.FLOAT);
+        /*Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
@@ -63,7 +67,7 @@ public class RedditCharacterModel {
                     .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
         } catch(Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
         final int testIters = 100;
         final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
@@ -152,24 +156,33 @@ public class RedditCharacterModel {
                 count++;//ds.getFeatures(0).shape()[1];
             }
             //MultiDataSet ds2 = BuildCharacterDatasets.textToVec(text2,2,96);
-            for(int i = 0; i < testDsArray.length; i++) {
+            /*for(int i = 0; i < testDsArray.length; i++) {
                 MultiDataSet testDs = testDsArray[i];
                 String text = testTexts[i];
                 INDArray vec = testDs.getFeatures(0);
-                vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]);
-                INDArray mask = testDs.getFeaturesMaskArray(0);
-                //mask.assign(0);
-                INDArray labelMask = testDs.getLabelsMaskArray(0);
-                //labelMask.assign(1);
+                vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]).dup();
+                INDArray mask = testDs.getFeaturesMaskArray(0).dup();
+
+                Function<INDArray,Pair<INDArray,Double>> predictNextStep = vector -> {
+                    INDArray results = Transforms.softmax(vector,true);
+                    INDArray randResults = results.muli(Nd4j.rand(results.shape(), new UniformDistribution(0,1)));
+                    int sampleIdx = Nd4j.argMax(randResults).getInt();
+                    INDArray ret = Nd4j.zeros(results.shape());
+                    ret.putScalar(sampleIdx,1f);
+                    return new Pair<>(ret,randResults.getDouble(sampleIdx));
+                };
+
+                Function<INDArray,String> convertPredictionToOutput = vector -> {
+                    return BuildCharacterDatasets.vectorsToStrings(vector,null)[0];
+                };
+
+                BeamSearch<String> beamSearch = new BeamSearch<>(10,net,predictNextStep,0.7,convertPredictionToOutput);
+                Pair<String,Double> results = beamSearch.run(vec,10);
                 String[] newText = BuildCharacterDatasets.vectorsToStrings(vec, mask);
                 System.out.println("Text: " + text);
                 System.out.println("New Text: " + newText[0]);
-                net.setLayerMaskArrays(new INDArray[]{mask}, new INDArray[]{labelMask});
-                INDArray output = net.output(vec)[0];
-                net.clearLayerMaskArrays();
-                String predictedText = BuildCharacterDatasets.vectorsToStrings(output, labelMask)[0];
-                System.out.println("Predicted Text: " + predictedText);
-            }
+                System.out.println("Prediction (score: "+results.getSecond()+"): "+results.getFirst());
+            }*/
             return (score/count);
         };
 

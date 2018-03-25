@@ -6,10 +6,7 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.primitives.Pair;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public class BeamSearch<T> {
@@ -47,7 +44,7 @@ public class BeamSearch<T> {
     }
 
 
-    public Pair<INDArray,Double> computeBeam(ComputationGraph graph, INDArray input, int iterations) {
+    private Pair<INDArray,Double> computeBeam(ComputationGraph graph, INDArray input, int iterations) {
         int originalSize = input.shape()[1];
         List<Double> scores = new ArrayList<>(iterations);
         INDArray prediction = computeBeamHelper(scores,graph,input,null,null,1,iterations);
@@ -63,7 +60,8 @@ public class BeamSearch<T> {
     private INDArray computeBeamHelper(List<Double> scores, ComputationGraph graph, INDArray input, INDArray featureMask, INDArray labelMask, int iteration, int totalIterations) {
         if(input.shape().length!=2) throw new RuntimeException("Expecting single rnn example. Dimensions should = 2.");
         // add output dimension
-        INDArray newInput = Nd4j.vstack(input, Nd4j.zeros(input.columns()));
+        INDArray newInput = Nd4j.hstack(input, Nd4j.zeros(input.rows()).transposei());
+        //System.out.println("New input dims: "+ Arrays.toString(newInput.shape()));
         INDArray newFeatureMask;
         if(featureMask==null) {
             newFeatureMask = Nd4j.ones(newInput.shape()[1]);
@@ -80,14 +78,19 @@ public class BeamSearch<T> {
         }
 
         graph.setLayerMaskArrays(new INDArray[]{newFeatureMask},new INDArray[]{newLabelMask});
+
+        newInput = newInput.reshape(1,newInput.shape()[0],newInput.shape()[1]);
         INDArray output = graph.output(newInput)[0];
+        //System.out.println("Output shape: "+Arrays.toString(output.shape()));
         graph.clearLayerMaskArrays();
-        INDArray finalStepOutput = output.get(NDArrayIndex.all(),NDArrayIndex.point(output.shape()[1]-1));
+        INDArray finalStepOutput = output.get(NDArrayIndex.point(0),NDArrayIndex.all(),NDArrayIndex.point(output.shape()[2]-1));
         Pair<INDArray,Double> prediction = predictNextStepFunction.apply(finalStepOutput);
         if(prediction==null) {
             return input;
         }
-        newInput.get(NDArrayIndex.all(),NDArrayIndex.point(newInput.shape()[1])).assign(prediction.getFirst());
+        //System.out.println("Prediction dims: "+Arrays.toString(prediction.getFirst().shape()));
+        newInput = newInput.reshape(newInput.shape()[1],newInput.shape()[2]);
+        newInput.get(NDArrayIndex.all(),NDArrayIndex.point(newInput.shape()[1]-1)).assign(prediction.getFirst());
         double score = prediction.getSecond();
         if(iteration<totalIterations) {
             scores.add(score);

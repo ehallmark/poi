@@ -61,7 +61,7 @@ public class RedditWord2VecModel {
         }*/
 
         final int testIters = 100;
-        final int numChars = BuildWord2VecDatasets.VOCAB_SIZE;
+        final int numChars = 128;
         final int hiddenLayerSize = 64;
         final int numEpochs = 3;
 
