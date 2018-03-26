@@ -4,6 +4,7 @@ import main.java.predict.Database;
 import main.java.predict.word2vec.WikiWord2Vec;
 import main.java.reddit.Comment;
 import main.java.reddit.Postgres;
+import main.java.reddit.word2vec.RedditWord2Vec;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
@@ -71,7 +72,7 @@ public class BuildWord2VecDatasets {
 
     public static void main(String[] args) throws Exception {
         Nd4j.setDataType(DataBuffer.Type.FLOAT);
-        Word2Vec word2Vec = WordVectorSerializer.readWord2VecModel(WikiWord2Vec.modelFile);
+        Word2Vec word2Vec = WordVectorSerializer.readWord2VecModel(RedditWord2Vec.modelFile);
 
         Function<List<Pair<Pair<INDArray,INDArray>,Pair<INDArray,INDArray>>>,MultiDataSet> pairsToDatasetFunction = pairs -> {
             INDArray input = Nd4j.create(pairs.size(),word2Vec.getLayerSize(),MAX_SENTENCE_LENGTH*2);

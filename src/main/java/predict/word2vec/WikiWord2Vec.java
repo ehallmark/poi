@@ -21,8 +21,8 @@ import java.util.function.Function;
 
 public class WikiWord2Vec {
     public static final File modelFile = new File("word2vec_model.nn");
-    private static final int BATCH_SIZE = 512;
-    private static final int VECTOR_SIZE = 512;
+    private static final int BATCH_SIZE = 1024;
+    public static final int VECTOR_SIZE = 128;
     @Getter
     private static org.deeplearning4j.models.word2vec.Word2Vec net;
     private static void save(org.deeplearning4j.models.word2vec.Word2Vec paragraphVectors) {
@@ -57,8 +57,8 @@ public class WikiWord2Vec {
         double sampling = 0.0001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
-        double learningRate = 0.0001;// 0.05;
-        double minLearningRate = 0.00001;//0.001;
+        double learningRate = 0.05;
+        double minLearningRate = 0.001;
 
         try {
             System.out.println("Trying to load model....");

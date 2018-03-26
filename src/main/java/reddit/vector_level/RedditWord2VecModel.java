@@ -1,5 +1,6 @@
 package main.java.reddit.vector_level;
 
+import main.java.predict.word2vec.WikiWord2Vec;
 import main.java.reddit.word2vec.RedditWord2Vec;
 import main.java.util.DefaultScoreListener;
 import main.java.util.FileMultiMinibatchIterator;
@@ -31,7 +32,7 @@ import org.nd4j.jita.conf.CudaEnvironment;
 
 public class RedditWord2VecModel {
     private static final File modelFile = new File("reddit_word2vec_vector_level_model.nn");
-    private static final int MINI_BATCH_SIZE = 64;
+    private static final int MINI_BATCH_SIZE = 256;
     private static ComputationGraph net;
     private static void save(ComputationGraph net) {
         try {
@@ -63,13 +64,13 @@ public class RedditWord2VecModel {
             e.printStackTrace();
         }
 
-        final int testIters = 50;
+        final int testIters = 500;
         final int numChars = RedditWord2Vec.VECTOR_SIZE;
-        final int hiddenLayerSize = 256;
+        final int hiddenLayerSize = 1024;
         final int numEpochs = 3;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
-                .learningRate(0.05)//0.05
+                .learningRate(0.001)//0.01
                 .weightInit(WeightInit.XAVIER)
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
                 .iterations(1)
@@ -78,7 +79,7 @@ public class RedditWord2VecModel {
                 //.cacheMode(CacheMode.DEVICE)
                 .activation(Activation.TANH)
                 .miniBatch(true)
-                .updater(Updater.RMSPROP)
+                .updater(Updater.ADAM)
                 .graphBuilder()
                 .addInputs("x1")
                 //.backpropType(BackpropType.TruncatedBPTT)
@@ -86,7 +87,7 @@ public class RedditWord2VecModel {
                 .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
                 .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
                 .addLayer("r3", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r2")
-                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.COSINE_PROXIMITY).activation(Activation.IDENTITY).nIn(hiddenLayerSize).nOut(numChars).build(),"r3")
+                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.COSINE_PROXIMITY).activation(Activation.TANH).nIn(hiddenLayerSize).nOut(numChars).build(),"r3")
                 .setOutputs("y1")
                 .build();
 
