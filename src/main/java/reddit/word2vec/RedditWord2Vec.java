@@ -20,7 +20,7 @@ import java.util.function.Function;
 public class RedditWord2Vec {
     private static final File modelFile = new File("reddit_word2vec_model.nn");
     private static final int BATCH_SIZE = 1024;
-    private static final int VECTOR_SIZE = 128;
+    public static final int VECTOR_SIZE = 128;
     @Getter
     private static org.deeplearning4j.models.word2vec.Word2Vec net;
     private static void save(org.deeplearning4j.models.word2vec.Word2Vec paragraphVectors) {

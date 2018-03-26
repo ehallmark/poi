@@ -1,5 +1,6 @@
 package main.java.reddit.vector_level;
 
+import main.java.reddit.word2vec.RedditWord2Vec;
 import main.java.util.DefaultScoreListener;
 import main.java.util.FileMultiMinibatchIterator;
 import main.java.util.Function2;
@@ -14,7 +15,9 @@ import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.io.File;
@@ -24,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-//import org.nd4j.jita.conf.CudaEnvironment;
+import org.nd4j.jita.conf.CudaEnvironment;
 
 public class RedditWord2VecModel {
     private static final File modelFile = new File("reddit_word2vec_vector_level_model.nn");
@@ -48,7 +51,7 @@ public class RedditWord2VecModel {
     }
 
     public static void main(String[] args) {
-        /*Nd4j.setDataType(DataBuffer.Type.DOUBLE);
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
@@ -58,15 +61,15 @@ public class RedditWord2VecModel {
                     .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
         } catch(Exception e) {
             e.printStackTrace();
-        }*/
+        }
 
-        final int testIters = 100;
-        final int numChars = 128;
-        final int hiddenLayerSize = 64;
+        final int testIters = 50;
+        final int numChars = RedditWord2Vec.VECTOR_SIZE;
+        final int hiddenLayerSize = 256;
         final int numEpochs = 3;
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
-                .learningRate(0.01)//0.05
+                .learningRate(0.05)//0.05
                 .weightInit(WeightInit.XAVIER)
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
                 .iterations(1)
@@ -81,9 +84,9 @@ public class RedditWord2VecModel {
                 //.backpropType(BackpropType.TruncatedBPTT)
                 //.tBPTTBackwardLength(100)
                 .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
-                //.addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
-                //.addLayer("r3", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r2")
-                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).activation(Activation.SOFTMAX).nIn(hiddenLayerSize+numChars).nOut(numChars).build(),"r1","x1")
+                .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
+                .addLayer("r3", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r2")
+                .addLayer("y1", new RnnOutputLayer.Builder().lossFunction(LossFunctions.LossFunction.COSINE_PROXIMITY).activation(Activation.IDENTITY).nIn(hiddenLayerSize).nOut(numChars).build(),"r3")
                 .setOutputs("y1")
                 .build();
 
