@@ -5,12 +5,14 @@ import main.java.nlp.wikipedia.WikiXMLParserFactory;
 import main.java.nlp.wikipedia.WikiXMLSAXParser;
 import main.java.nlp.wikipedia.demo.DemoSAXHandler;
 import main.java.util.ZipStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
 import org.deeplearning4j.models.sequencevectors.sequence.Sequence;
 import org.deeplearning4j.models.word2vec.VocabWord;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.net.MalformedURLException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -65,7 +67,7 @@ public class WikipediaParagraphIterator implements SequenceIterator<VocabWord> {
             protected void compute() {
                 WikiXMLParser wxsp = null;
                 try {
-                    wxsp = new WikiXMLSAXParser(ZipStream.getInputStreamForCompressedFile(file.getAbsolutePath()));
+                    wxsp = new WikiXMLSAXParser(new BufferedInputStream(new FileInputStream(file)));
                 } catch (Exception e) {
                     e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                     return;

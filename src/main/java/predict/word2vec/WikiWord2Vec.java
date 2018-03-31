@@ -2,6 +2,7 @@ package main.java.predict.word2vec;
 
 import lombok.Getter;
 import main.java.nlp.wikipedia.demo.SAXParserDemo;
+import main.java.reddit.word2vec.RedditWord2Vec;
 import main.java.util.StopWords;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.embeddings.learning.impl.sequence.DBOW;
@@ -20,7 +21,8 @@ import java.util.*;
 import java.util.function.Function;
 
 public class WikiWord2Vec {
-    public static final File modelFile = new File("word2vec_model.nn");
+    public static final File modelFile = new File("word2vec_reddit_and_wiki_model.nn");
+    public static final File pretrainedModelFile = RedditWord2Vec.modelFile;
     private static final int BATCH_SIZE = 1024;
     public static final int VECTOR_SIZE = 128;
     @Getter
@@ -40,7 +42,7 @@ public class WikiWord2Vec {
             return null;
         };
 
-        Collection<String> words = Arrays.asList("multnomah","country","church","hospital","semiconductor","electricity","artificial","intelligence","chemistry","biology","vehicle","drone");
+        Collection<String> words = Arrays.asList("multnomah","country","churchill","jefferson","washington","george","church","hospital","semiconductor","electricity","artificial","intelligence","chemistry","biology","vehicle","drone");
         Function<Void,Void> afterEpochFunction = (v) -> {
             for (String word : words) {
                 Collection<String> lst = getNet().wordsNearest(word, 10);
@@ -52,17 +54,17 @@ public class WikiWord2Vec {
 
 
         int windowSize = 7;
-        int minWordFrequency = 15;
+        int minWordFrequency = 30;
         double negativeSampling = 30;
         double sampling = 0.0001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
-        double learningRate = 0.05;
-        double minLearningRate = 0.001;
+        double learningRate = 0.0001;
+        double minLearningRate = 0.00001;
 
         try {
             System.out.println("Trying to load model....");
-            net = WordVectorSerializer.readWord2VecModel(modelFile);
+            net = WordVectorSerializer.readWord2VecModel(pretrainedModelFile);
             System.out.println("Finished loading model.");
         } catch(Exception e) {
             e.printStackTrace();

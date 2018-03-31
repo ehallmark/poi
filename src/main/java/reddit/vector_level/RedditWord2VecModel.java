@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import org.nd4j.jita.conf.CudaEnvironment;
+//import org.nd4j.jita.conf.CudaEnvironment;
 
 public class RedditWord2VecModel {
     private static final File modelFile = new File("reddit_word2vec_vector_level_model.nn");
@@ -53,7 +53,7 @@ public class RedditWord2VecModel {
 
     public static void main(String[] args) {
         Nd4j.setDataType(DataBuffer.Type.FLOAT);
-        try {
+        /*try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
                     .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
@@ -62,7 +62,7 @@ public class RedditWord2VecModel {
                     .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
         } catch(Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
         final int testIters = 500;
         final int numChars = RedditWord2Vec.VECTOR_SIZE;
