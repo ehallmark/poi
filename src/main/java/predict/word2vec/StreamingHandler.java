@@ -38,11 +38,8 @@ public class StreamingHandler implements PageCallbackHandler {
     public void process(WikiPage page) {
         String text = page.getText();
         Stream.of(text.split("\\.\\s+")).forEach(line -> {
-
-            List<VocabWord> words = Arrays.stream(line.split("\\s+")).map(str -> {
-                str = str.toLowerCase().replaceAll("[^a-z0-9\\-]", "");
+            List<VocabWord> words = Arrays.stream(line.toLowerCase().replaceAll("[^a-z ]", " ").split("\\s+")).map(str -> {
                 if (str.isEmpty()) return null;
-                if (!Character.isAlphabetic(str.charAt(0))) return null;
                 VocabWord word = new VocabWord(1, str);
                 word.setElementFrequency(1);
                 word.setSequencesCount(1);

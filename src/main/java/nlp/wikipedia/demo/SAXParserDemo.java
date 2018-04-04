@@ -16,7 +16,7 @@ public class SAXParserDemo {
 	/**
 	 * @param args
 	 */
-	public static final String WIKI_FILE = "/home/ehallmark/data/enwiki-latest-pages-articles-multistream.xml.bz2";
+	public static final String WIKI_FILE = "/home/ehallmark/data/enwiki-latest-pages-articles-multistream.xml";
 	public static void main(String[] args) {
 		args = new String[]{
 				WIKI_FILE

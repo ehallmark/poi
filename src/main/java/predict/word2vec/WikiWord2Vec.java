@@ -80,8 +80,6 @@ public class WikiWord2Vec {
             }
         });
 
-        List<String> stopWords = StopWords.getStopWords();
-        System.out.println("Num stopwords: "+stopWords.size());
 
         boolean newModel = net == null;
         org.deeplearning4j.models.word2vec.Word2Vec.Builder builder = new org.deeplearning4j.models.word2vec.Word2Vec.Builder()
@@ -91,7 +89,7 @@ public class WikiWord2Vec {
                 .windowSize(windowSize)
                 .layerSize(VECTOR_SIZE)
                 .sampling(sampling)
-                .stopWords(stopWords)
+                //.stopWords(stopWords)
                 .negativeSample(negativeSampling)
                 .learningRate(learningRate)
                 .minLearningRate(minLearningRate)

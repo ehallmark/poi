@@ -151,8 +151,9 @@ public class FileMultiMinibatchIterator implements MultiDataSetIterator{
                                         }
                                         labels[j]=labels[j].get(indices);
                                     }
+                                    INDArray[] featuresMasks = null;
                                     if(e.getFeaturesMaskArrays()!=null) {
-                                        INDArray[] featuresMasks = e.getFeaturesMaskArrays().clone();
+                                        featuresMasks = e.getFeaturesMaskArrays().clone();
                                         for (int j = 0; j < featuresMasks.length; j++) {
                                             int nDims = featuresMasks[j].shape().length;
                                             INDArrayIndex[] indices = new INDArrayIndex[nDims];
@@ -162,7 +163,10 @@ public class FileMultiMinibatchIterator implements MultiDataSetIterator{
                                             }
                                             featuresMasks[j] = featuresMasks[j].get(indices);
                                         }
-                                        INDArray[] labelsMasks = e.getLabelsMaskArrays().clone();
+                                    }
+                                    INDArray[] labelsMasks = null;
+                                    if(e.getLabelsMaskArrays()!=null) {
+                                        labelsMasks = e.getLabelsMaskArrays().clone();
                                         for (int j = 0; j < labelsMasks.length; j++) {
                                             int nDims = labelsMasks[j].shape().length;
                                             INDArrayIndex[] indices = new INDArrayIndex[nDims];
@@ -172,18 +176,13 @@ public class FileMultiMinibatchIterator implements MultiDataSetIterator{
                                             }
                                             labelsMasks[j] = labelsMasks[j].get(indices);
                                         }
-                                        return new org.nd4j.linalg.dataset.MultiDataSet(
-                                                features,
-                                                labels,
-                                                featuresMasks,
-                                                labelsMasks
-                                        );
-                                    } else {
-                                        return new org.nd4j.linalg.dataset.MultiDataSet(
-                                                features,
-                                                labels
-                                        );
                                     }
+                                    return new org.nd4j.linalg.dataset.MultiDataSet(
+                                            features,
+                                            labels,
+                                            featuresMasks,
+                                            labelsMasks
+                                    );
                                 }
                                 return null;
                             }).filter(d->d!=null).collect(Collectors.toList());

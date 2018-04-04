@@ -1,0 +1,248 @@
+package main.java.controversiality.character;
+
+import main.java.util.DefaultScoreListener;
+import main.java.util.FileMultiMinibatchIterator;
+import main.java.util.Function2;
+import org.deeplearning4j.eval.Evaluation;
+import org.deeplearning4j.nn.api.OptimizationAlgorithm;
+import org.deeplearning4j.nn.conf.ComputationGraphConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.Updater;
+import org.deeplearning4j.nn.conf.graph.rnn.LastTimeStepVertex;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.GravesLSTM;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.api.IterationListener;
+import org.deeplearning4j.util.ModelSerializer;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.api.MultiDataSet;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.learning.config.RmsProp;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
+
+import java.io.File;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.nd4j.jita.conf.CudaEnvironment;
+
+public class RedditCharacterModel {
+    private static final File modelFile = new File("reddit_character_controversial_model.nn");
+    private static final int MINI_BATCH_SIZE = 64;
+    private static ComputationGraph net;
+    private static void save(ComputationGraph net) {
+        try {
+            ModelSerializer.writeModel(net, modelFile, true);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static ComputationGraph load() {
+        try {
+            net = ModelSerializer.restoreComputationGraph(modelFile);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return net;
+    }
+
+    public static void main(String[] args) {
+        Nd4j.setDataType(DataBuffer.Type.FLOAT);
+        try {
+            Nd4j.getMemoryManager().setAutoGcWindow(100);
+            CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
+                    .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
+                    .setMaximumDeviceCache(10L * 1024 * 1024 * 1024L)
+                    .setMaximumHostCacheableLength(2L * 1024 * 1024 * 1024L)
+                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        final int testIters = 100;
+        final int numChars = BuildCharacterDatasets.VALID_CHARS.length;
+        final int hiddenLayerSize = 128;
+        final int numEpochs = 1;
+        final double learningRate = 0.01; //0.1;
+
+        ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
+                .learningRate(learningRate)
+                .weightInit(WeightInit.XAVIER)
+                .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+                .iterations(1)
+                .regularization(false)
+                .seed(12)
+                //.cacheMode(CacheMode.DEVICE)
+                .activation(Activation.TANH)
+                .miniBatch(true)
+                .updater(Updater.ADAM)
+                .graphBuilder()
+                .addInputs("x1")
+                .addLayer("r1", new GravesLSTM.Builder().nIn(numChars).nOut(hiddenLayerSize).build(),"x1")
+                .addLayer("r2", new GravesLSTM.Builder().nIn(hiddenLayerSize).nOut(hiddenLayerSize).build(),"r1")
+                .addVertex("preprocessor1", new LastTimeStepVertex("x1"),"r2")
+                .addLayer("y1", new OutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).activation(Activation.SOFTMAX).nIn(hiddenLayerSize).nOut(2).build(),"preprocessor1")
+                .setOutputs("y1")
+                .build();
+
+        load();
+        if(net==null) {
+            System.out.println("Initializing new model...");
+            net = new ComputationGraph(conf);
+            net.init();
+        } else {
+            System.out.println("Restoring network from previous model...");
+            INDArray params = net.params();
+            net = new ComputationGraph(conf);
+            net.init(params,false);
+        }
+
+        Function2<LocalDateTime,Double,Void> saveFunction = (date,score)->{
+            System.out.println("Saving...");
+            try {
+                save(net);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        };
+
+
+        List<MultiDataSet> testSets = new ArrayList<>();
+        String[] testTexts = new String[]{
+                "hello my name is Evan.",
+                "this is another Example",
+                "the dog went running",
+                "what is your favorite movie?",
+                "who would you rather be, brad pitt or angelina jolie?",
+                "the dog went on a run",
+                "Twitter faces more challenges than most technology companies: ISIS terrorists, trolls, bots, and Donald Trump."
+        };
+        MultiDataSet[] testDsArray = new MultiDataSet[testTexts.length];
+        for(int i = 0; i < testDsArray.length; i++) {
+            testDsArray[i]= BuildCharacterDatasets.textToVec(testTexts[i],128,1);
+        }
+
+        FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.devDir,10,-1,true);
+        testIterator.setCompressed(true);
+        int c = 0;
+        while(testIterator.hasNext()&&c<8) {
+            testSets.add(testIterator.next());
+            c++;
+            System.out.println("Loaded test set "+c);
+            System.gc();
+        }
+        testIterator.reset();
+
+        Function<Object,Double> testErrorFunction = obj -> {
+            double score = 0d;
+            int count = 0;
+            Evaluation eval = new Evaluation(2);
+            for(MultiDataSet ds : testSets) {
+                double s = net.score(ds,false);
+                score+=s;
+                //System.out.println(s);
+                count++;//ds.getFeatures(0).shape()[1];
+                ds.setFeaturesMaskArrays(ds.getFeaturesMaskArrays());
+                eval.eval(ds.getLabels(0),net.output(false,ds.getFeatures(0))[0]);
+                net.clearLayerMaskArrays();
+            }
+            System.out.println("Test: "+eval.stats());
+            //MultiDataSet ds2 = BuildCharacterDatasets.textToVec(text2,2,96);
+            /*for(int i = 0; i < testDsArray.length; i++) {
+                MultiDataSet testDs = testDsArray[i];
+                String text = testTexts[i];
+                INDArray vec = testDs.getFeatures(0);
+                vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]).dup();
+                INDArray mask = testDs.getFeaturesMaskArray(0).dup();
+
+                Function<INDArray,Pair<INDArray,Double>> predictNextStep = vector -> {
+                    INDArray results = Transforms.softmax(vector,true);
+                    INDArray randResults = results.muli(Nd4j.rand(results.shape(), new UniformDistribution(0,1)));
+                    int sampleIdx = Nd4j.argMax(randResults).getInt();
+                    INDArray ret = Nd4j.zeros(results.shape());
+                    ret.putScalar(sampleIdx,1f);
+                    return new Pair<>(ret,randResults.getDouble(sampleIdx));
+                };
+
+                Function<INDArray,String> convertPredictionToOutput = vector -> {
+                    return BuildCharacterDatasets.vectorsToStrings(vector,null)[0];
+                };
+
+                BeamSearch<String> beamSearch = new BeamSearch<>(10,net,predictNextStep,0.7,convertPredictionToOutput);
+                Pair<String,Double> results = beamSearch.run(vec,10);
+                String[] newText = BuildCharacterDatasets.vectorsToStrings(vec, mask);
+                System.out.println("Text: " + text);
+                System.out.println("New Text: " + newText[0]);
+                System.out.println("Prediction (score: "+results.getSecond()+"): "+results.getFirst());
+            }*/
+            return (score/count);
+        };
+
+
+        /*Function<Object,Double> testErrorFunction = obj -> {
+            double score = 0d;
+            int count = 0;
+            FileMultiMinibatchIterator testIterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.devDir,10,-1,true);
+            testIterator.setCompressed(true);
+            while(testIterator.hasNext()&&count<10) {
+                double s = net.score(testIterator.next(),false);
+                score+=s;
+                //System.out.println(s);
+                count++;
+                System.gc();
+            }
+            System.gc();
+            testIterator.reset();
+            for(int i = 0; i < testDsArray.length; i++) {
+                MultiDataSet testDs = testDsArray[i];
+                String text = testTexts[i];
+                INDArray vec = testDs.getFeatures(0);
+                vec = vec.reshape(1, vec.shape()[0], vec.shape()[1]);
+                INDArray mask = testDs.getFeaturesMaskArray(0);
+                //mask.assign(0);
+                INDArray labelMask = testDs.getLabelsMaskArray(0);
+                //labelMask.assign(1);
+                String[] newText = BuildCharacterDatasets.vectorsToStrings(vec, mask);
+                System.out.println("Text: " + text);
+                System.out.println("New Text: " + newText[0]);
+                net.setLayerMaskArrays(new INDArray[]{mask}, new INDArray[]{labelMask});
+                INDArray output = net.output(vec)[0];
+                net.clearLayerMaskArrays();
+                String predictedText = BuildCharacterDatasets.vectorsToStrings(output, labelMask)[0];
+                System.out.println("Predicted Text: " + predictedText);
+            }
+            return (score/count);
+        };*/
+
+        System.out.println("Initial test: "+testErrorFunction.apply(net));
+
+        IterationListener listener = new DefaultScoreListener(testIters,testErrorFunction,obj->0d,saveFunction);
+
+        net.setListeners(listener);
+
+        FileMultiMinibatchIterator iterator = new FileMultiMinibatchIterator(BuildCharacterDatasets.trainDir,-1,MINI_BATCH_SIZE,false);
+        iterator.setCompressed(true);
+        for(int i = 0; i < numEpochs; i++) {
+            while (iterator.hasNext()) {
+                MultiDataSet ds = iterator.next();
+                //System.out.println("Features: "+ ds.getFeatures(0).get(NDArrayIndex.point(0),NDArrayIndex.all(),NDArrayIndex.point(0)).toString());
+                //System.out.println("FMask: "+ ds.getFeaturesMaskArray(0).getRow(0).toString());
+                //System.out.println("Labels: "+ ds.getLabels(0).get(NDArrayIndex.point(0),NDArrayIndex.all(),NDArrayIndex.point(0)).toString());
+                //System.out.println("LMask: "+ ds.getLabelsMaskArray(0).getRow(0).toString());
+                net.fit(ds);
+                System.gc();
+            }
+            System.out.println("Finished epoch: "+(i+1));
+            iterator.reset();
+        }
+    }
+}

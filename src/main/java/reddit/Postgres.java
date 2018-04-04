@@ -131,4 +131,39 @@ public class Postgres {
         rs.close();
         ps.close();
     }
+
+    public static void iterateForControversiality(Consumer<Comment> consumer, int sampling) throws SQLException {
+        PreparedStatement ps1 = conn.prepareStatement("select id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality from comments where controversiality=0");
+        PreparedStatement ps2 = conn.prepareStatement("select id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality from comments where controversiality=1");
+        ps1.setFetchSize(100);
+        ps2.setFetchSize(100);
+        ResultSet rs1 = ps1.executeQuery();
+        ResultSet rs2 = ps2.executeQuery();
+        final Random rand = new Random(2352);
+        AtomicLong cnt = new AtomicLong(0);
+        int numControversial = 0;
+        ResultSet rs = (rand.nextBoolean()?rs1:rs2);
+        while(rs.next()&&(sampling<=0||cnt.get()<sampling)) {
+            if(rs==rs2) numControversial++;
+            Comment comment = new Comment();
+            comment.setId(rs.getString(1));
+            comment.setParent_id(rs.getString(2));
+            comment.setSubreddit_id(rs.getString(3));
+            comment.setLink_id(rs.getString(4));
+            comment.setBody(rs.getString(5));
+            comment.setScore(rs.getInt(6));
+            comment.setUps(rs.getInt(7));
+            comment.setAuthor(rs.getString(8));
+            comment.setControversiality(rs.getInt(9));
+            consumer.accept(comment);
+            if(cnt.getAndIncrement()%10000==9999) {
+                System.out.println("Iterated over: "+cnt.get()+" out of "+sampling+". Num controversial: "+numControversial);
+            }
+            rs = (rand.nextBoolean()?rs1:rs2);
+        }
+        rs1.close();
+        rs2.close();
+        ps1.close();
+        ps2.close();
+    }
 }
