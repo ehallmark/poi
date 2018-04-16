@@ -1,7 +1,6 @@
 package main.java.word2vec;
 
-import main.java.nlp.wikipedia.demo.SAXParserDemo;
-import main.java.predict.word2vec.WikiWord2Vec;
+import main.java.nlp.wikipedia.demo.RunPointsOfInterestDemo;
 import main.java.predict.word2vec.WikipediaParagraphIterator;
 import main.java.reddit.Comment;
 import main.java.reddit.Postgres;
@@ -100,7 +99,7 @@ public class Word2VecTextFolder {
         RecursiveAction action1 = new RecursiveAction() {
             @Override
             protected void compute() {
-                WikipediaParagraphIterator iterator = new WikipediaParagraphIterator(new File(SAXParserDemo.WIKI_FILE));
+                WikipediaParagraphIterator iterator = new WikipediaParagraphIterator(new File(RunPointsOfInterestDemo.WIKI_FILE));
                 while(iterator.hasMoreSequences()) {
                     Sequence<VocabWord> sequence = iterator.nextSequence();
                     if(sequence!=null&&sequence.size()>1) {

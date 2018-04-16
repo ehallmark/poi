@@ -1,7 +1,5 @@
 package main.java.nlp.wikipedia.demo;
 
-import main.java.nlp.language.Language;
-import main.java.nlp.wikipedia.PageCallbackHandler;
 import main.java.nlp.wikipedia.WikiXMLParser;
 import main.java.nlp.wikipedia.WikiXMLParserFactory;
 
@@ -12,7 +10,7 @@ import java.net.MalformedURLException;
  * @author Jason Smith
  *
  */
-public class SAXParserDemo {
+public class RunPointsOfInterestDemo {
 	/**
 	 * @param args
 	 */
@@ -26,7 +24,7 @@ public class SAXParserDemo {
 			System.exit(-1);
 		}
 
-		DemoSAXHandler handler = new DemoSAXHandler();
+		PointOfInterestHandler handler = new PointOfInterestHandler();
 
         WikiXMLParser wxsp = null;
         try {

@@ -1,20 +1,14 @@
 package main.java.reddit.word2vec;
 
 import lombok.Getter;
-import main.java.nlp.wikipedia.demo.SAXParserDemo;
-import main.java.predict.word2vec.WikipediaParagraphIterator;
-import main.java.util.StopWords;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
-import org.deeplearning4j.models.word2vec.VocabWord;
 import org.deeplearning4j.text.tokenization.tokenizer.TokenPreProcess;
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Function;
 
 public class RedditWord2Vec {

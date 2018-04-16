@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.nd4j.jita.conf.CudaEnvironment;
+//import org.nd4j.jita.conf.CudaEnvironment;
 
 public class RedditCharacterModel {
     private static final File modelFile = new File("reddit_character_controversial_model.nn");
@@ -58,11 +58,11 @@ public class RedditCharacterModel {
         Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
             Nd4j.getMemoryManager().setAutoGcWindow(100);
-            CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
+            /*CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
                     .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
                     .setMaximumDeviceCache(10L * 1024 * 1024 * 1024L)
                     .setMaximumHostCacheableLength(2L * 1024 * 1024 * 1024L)
-                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
+                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);*/
         } catch(Exception e) {
             e.printStackTrace();
         }

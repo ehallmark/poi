@@ -88,6 +88,7 @@ public class ZippedFileSequenceIterator implements SequenceIterator<VocabWord> {
         System.out.println("Resetting iterator...");
         iter++;
         this.fileIterator = newFileIterator();
+        counter.set(0);
         try {
             if(reader!=null)reader.close();
             reader=null;

@@ -23,7 +23,7 @@ import static main.java.predict.Database.*;
  *
  */
 
-public class DemoSAXHandler implements PageCallbackHandler {
+public class PointOfInterestHandler implements PageCallbackHandler {
 
     private static final AtomicLong total = new AtomicLong(0);
     private static final AtomicLong cnt = new AtomicLong(0);

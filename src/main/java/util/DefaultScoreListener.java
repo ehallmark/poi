@@ -57,7 +57,7 @@ public class DefaultScoreListener implements IterationListener {
             long newTime = System.currentTimeMillis();
             System.out.println("Time to complete: "+((newTime-lastTime)/1000)+" seconds");
             lastTime = newTime;
-            System.out.print("Testing...");
+            System.out.print("ExtractCategories...");
             System.out.print(" Model Score: "+model.score());
             double error = testErrorFunction.apply(model);
             System.out.print(", Test Error: "+error);

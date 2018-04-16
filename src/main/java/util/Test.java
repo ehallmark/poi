@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Test {
     public static void main(String[] args) {
-        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles(),20,20, -1);
+        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles(),5,6,7,8,9,10);
         DefaultTokenizerFactory tf = new DefaultTokenizerFactory();
         tf.setTokenPreProcessor(new TokenPreProcess() {
             @Override
@@ -47,8 +47,16 @@ public class Test {
                 .iterate(iterator);
 
         Word2Vec word2Vec = builder.build();
-        word2Vec.fit();
+       // word2Vec.fit();
 
+        for(int i = 0; i < 10; i++) {
+            while (iterator.hasMoreSequences()) {
+                iterator.nextSequence();
+                System.out.print("-");
+            }
+            System.out.println();
+            iterator.reset();
+        }
 
         System.out.println("Finished.");
 

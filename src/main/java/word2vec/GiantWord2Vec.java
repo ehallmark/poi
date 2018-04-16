@@ -1,18 +1,8 @@
 package main.java.word2vec;
 
-import lombok.Getter;
-import main.java.nlp.wikipedia.demo.SAXParserDemo;
-import main.java.predict.word2vec.WikipediaParagraphIterator;
-import main.java.reddit.word2vec.PostgresStreamingIterator;
-import main.java.reddit.word2vec.RedditWord2Vec;
-import main.java.util.CombinedSequenceIterator;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
-import org.deeplearning4j.models.word2vec.VocabWord;
 import org.deeplearning4j.models.word2vec.Word2Vec;
-import org.deeplearning4j.text.sentenceiterator.FileSentenceIterator;
-import org.deeplearning4j.text.sentenceiterator.LineSentenceIterator;
 import org.deeplearning4j.text.tokenization.tokenizer.TokenPreProcess;
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
 
@@ -20,7 +10,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,7 +17,7 @@ import java.util.stream.Stream;
 
 public class GiantWord2Vec {
     public static final File modelFile = new File("word2vec_model.nn");
-    private static final int BATCH_SIZE = 512;
+    private static final int BATCH_SIZE = 1024;
     private static org.deeplearning4j.models.word2vec.Word2Vec net128;
     private static org.deeplearning4j.models.word2vec.Word2Vec net256;
     private static org.deeplearning4j.models.word2vec.Word2Vec net512;
@@ -44,7 +33,7 @@ public class GiantWord2Vec {
 
     private static Word2Vec.Builder newBuilder(int vectorSize) {
         int windowSize = 7;
-        int minWordFrequency = 100;
+        int minWordFrequency = 400;
         double negativeSampling = 8;
         double sampling = 0.001;
         //double learningRate = 0.1;
@@ -52,7 +41,7 @@ public class GiantWord2Vec {
         double learningRate = 0.05;
         double minLearningRate = 0.0001;
 
-        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles());
+        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles(),0,200000000,-1);
         DefaultTokenizerFactory tf = new DefaultTokenizerFactory();
         tf.setTokenPreProcessor(new TokenPreProcess() {
             @Override
@@ -76,9 +65,8 @@ public class GiantWord2Vec {
                 .useAdaGrad(true)
                 .resetModel(true)
                 .minWordFrequency(minWordFrequency)
-                .limitVocabularySize(100000000)
                 .tokenizerFactory(tf)
-                .workers(Math.max(1,Runtime.getRuntime().availableProcessors()/2))
+                .workers(4)
                 .iterations(1)
                 //.trainElementsRepresentation(true)
                 //.trainSequencesRepresentation(true)

@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.nd4j.jita.conf.CudaEnvironment;
 
 public class BuildWord2VecDatasets {
     public static final int MAX_SENTENCE_LENGTH = 64; // max length of an input...
@@ -66,12 +65,12 @@ public class BuildWord2VecDatasets {
     public static void main(String[] args) throws Exception {
         Nd4j.setDataType(DataBuffer.Type.FLOAT);
         try {
-            Nd4j.getMemoryManager().setAutoGcWindow(100);
+            /*Nd4j.getMemoryManager().setAutoGcWindow(100);
             CudaEnvironment.getInstance().getConfiguration().setMaximumGridSize(512).setMaximumBlockSize(512)
                     .setMaximumDeviceCacheableLength(2L * 1024 * 1024 * 1024L)
                     .setMaximumDeviceCache(10L * 1024 * 1024 * 1024L)
                     .setMaximumHostCacheableLength(2L * 1024 * 1024 * 1024L)
-                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);
+                    .setMaximumHostCache(10L * 1024 * 1024 * 1024L);*/
         } catch(Exception e) {
             e.printStackTrace();
         }

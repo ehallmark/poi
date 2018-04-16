@@ -1,22 +1,16 @@
 package main.java.predict.word2vec;
 
 import lombok.Getter;
-import main.java.nlp.wikipedia.demo.SAXParserDemo;
+import main.java.nlp.wikipedia.demo.RunPointsOfInterestDemo;
 import main.java.reddit.word2vec.RedditWord2Vec;
-import main.java.util.StopWords;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
-import org.deeplearning4j.models.embeddings.learning.impl.sequence.DBOW;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.paragraphvectors.ParagraphVectors;
-import org.deeplearning4j.models.sequencevectors.SequenceVectors;
 import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
 import org.deeplearning4j.models.word2vec.VocabWord;
-import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.text.tokenization.tokenizer.TokenPreProcess;
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
 
 import java.io.File;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 
@@ -71,7 +65,7 @@ public class WikiWord2Vec {
             net = null;
         }
 
-        SequenceIterator<VocabWord> iterator = new WikipediaParagraphIterator(new File(SAXParserDemo.WIKI_FILE));
+        SequenceIterator<VocabWord> iterator = new WikipediaParagraphIterator(new File(RunPointsOfInterestDemo.WIKI_FILE));
         DefaultTokenizerFactory tf = new DefaultTokenizerFactory();
         tf.setTokenPreProcessor(new TokenPreProcess() {
             @Override
