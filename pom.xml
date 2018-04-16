@@ -10,7 +10,7 @@
 
 
     <properties>
-        <nd4j.backend>nd4j-cuda-8.0-platform</nd4j.backend>
+        <nd4j.backend>nd4j-native-platform</nd4j.backend>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <geotools.version>20-SNAPSHOT</geotools.version>
         <shadedClassifier>bin</shadedClassifier>
