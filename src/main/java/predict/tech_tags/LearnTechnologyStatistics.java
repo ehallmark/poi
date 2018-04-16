@@ -19,10 +19,14 @@ public class LearnTechnologyStatistics {
     };
 
     public static final File matrixFile = new File("tech_tag_statistics_matrix.jobj");
+    public static final File titleListFile = new File("tech_tag_statistics_title_list.jobj");
+    public static final File wordListFile = new File("tech_tag_statistics_word_list.jobj");
     public static void main(String[] args) throws Exception {
         final Set<String> stopWords = new HashSet<>(StopWords.getStopWords());
-        final int minVocabSize = 3;
-        final int vocabLimit = 40000;
+        stopWords.add("nbsp");
+        stopWords.add("system");
+        final int minVocabSize = 10;
+        final int vocabLimit = 20000;
         Map<String,AtomicLong> vocabCount = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
         Set<String> allTitles = new HashSet<>();
@@ -58,6 +62,10 @@ public class LearnTechnologyStatistics {
                 })
                 .filter(e->e.getValue().get()>minVocabSize)
                 .limit(vocabLimit)
+                .map(e->{
+                    System.out.println(e.getKey()+": "+e.getValue().get());
+                    return e;
+                })
                 .collect(Collectors.toMap(e->e.getKey(),e->e.getValue()));
 
 
@@ -104,6 +112,8 @@ public class LearnTechnologyStatistics {
         // save weights
         coocurrenceMatrix.diviColumnVector(coocurrenceMatrix.norm2(1));
 
+        Database.saveObject(allWordsList,wordListFile);
+        Database.saveObject(allTitlesList,titleListFile);
         Database.saveObject(coocurrenceMatrix,matrixFile);
     }
 
