@@ -97,12 +97,7 @@ public class LearnTechnologyStatistics {
         System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
-        List<String> topParents = graph.getAllNodesList().stream().map(n->n.getLabel()).map(parent->{
-            Node parentNode = graph.findNode(parent);
-            return parentNode;
-        }).filter(p->countNodes(p)>=4)
-                .map(p->p.getLabel())
-                .collect(Collectors.toList());
+        List<String> topParents = new ArrayList<>(buildWeightedTree(allTitles.stream().map(t->graph.findNode(t)).collect(Collectors.toList()), 10));
 
         Map<String,Set<String>> parentsToChildrenMap = topParents.stream()
                 .collect(Collectors.toMap(e->e,e->findChildren(graph.findNode(e),null)));
@@ -161,12 +156,34 @@ public class LearnTechnologyStatistics {
         Database.saveObject(coocurrenceMatrix,matrixFile);
     }
 
+
+    private static Set<String> buildWeightedTree(List<Node> titles, int minimumSize) {
+        Set<String> parents = new HashSet<>();
+        Set<String> seen = new HashSet<>();
+        titles.forEach(title->{
+            buildWeightedTreeHelper(title,minimumSize,parents,seen);
+        });
+        return parents;
+    }
+
+    private static void buildWeightedTreeHelper(Node node, int minimumSize, Set<String> parents, Set<String> seen) {
+        seen.add(node.getLabel());
+        if(countNodes(node)>=minimumSize) {
+            parents.add(node.getLabel());
+            return;
+        }
+        for(Node parent : node.getParents()) {
+            if(seen.contains(parent.getLabel())) continue;
+            buildWeightedTreeHelper(parent,minimumSize,parents,seen);
+        }
+    }
+
     private static Set<String> findChildren(Node node, Collection<String> possible) {
         Set<String> children = new HashSet<>();
         Set<String> seen = new HashSet<>();
         seen.add(node.getLabel());
-        node.getChildren().forEach(child->{
-            findChildrenHelper(child,seen,children,possible);
+        node.getChildren().forEach(child -> {
+            findChildrenHelper(child, seen, children, possible);
         });
         return children;
     }
