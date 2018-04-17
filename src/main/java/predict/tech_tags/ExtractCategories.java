@@ -39,7 +39,7 @@ public class ExtractCategories {
                 return true;
             }
         }
-        return title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
+        return title.equals("open problems")||title.startsWith("science")||title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
     };
 
     public static final Function<String,String> titleTransformer = title -> {

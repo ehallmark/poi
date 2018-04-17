@@ -9,6 +9,7 @@ import main.java.util.StopWords;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
+import org.nd4j.linalg.primitives.Pair;
 
 import java.io.*;
 import java.util.*;
@@ -93,51 +94,27 @@ public class LearnTechnologyStatistics {
         System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
-        List<String> popularParents = parents.stream().map(parent->{
+        List<String> topParents = parents.stream().map(parent->{
             Node parentNode = graph.findNode(parent);
             return parentNode;
-        }).map(p->{
-            if(p.getParents().size()>0) {
-            //    System.out.println("Parents of "+p.getLabel()+": "+String.join("; ",p.getParents().stream().map(l->l.getLabel()).collect(Collectors.toList())));
-            }
-            return p;
-        }).filter(p->p.getChildren().size()>1)
+        }).filter(p->countNodes(p)>=5)
                 .map(p->p.getLabel())
                 .collect(Collectors.toList());
 
-        List<String> topLevelParents = popularParents.stream().map(parent->{
-            Node parentNode = graph.findNode(parent);
-            return parentNode;
-        }).filter(p->p.getParents().size()==0)
-                .map(p->p.getLabel())
-                .collect(Collectors.toList());
+        Map<String,Set<String>> parentsToChildrenMap = topParents.stream()
+                .collect(Collectors.toMap(e->e,e->findChildren(graph.findNode(e),null)));
 
-        List<String> intermediaryParents = popularParents.stream().filter(parent->!topLevelParents.contains(parent)).collect(Collectors.toList());
+        System.out.println("Top level parents: "+parentsToChildrenMap.size());
 
-        List<String> popularTitles = allTitles.stream().filter(title->{
-            Node node = graph.findNode(title);
-            if(node.getParents().size()<=1) return false;
-            //System.out.println("parents for "+node.getLabel()+": "+String.join("; ",node.getParents().stream().map(p->p.getLabel()).collect(Collectors.toList())));
-            List<Node> nodes = new ArrayList<>();
-            nodes.add(node);
-            Set<String> seen = new HashSet<>();
-            while(!nodes.isEmpty()) {
-                seen.addAll(nodes.stream().map(n->n.getLabel()).collect(Collectors.toList()));
-                if(nodes.stream().anyMatch(parent->popularParents.contains(parent.getLabel()))) return true;
-                nodes = nodes.stream().flatMap(n->n.getParents().stream()).filter(n->!seen.contains(n.getLabel())).collect(Collectors.toList());
+
+        // map top level to intermediary level
+        parentsToChildrenMap.forEach((parent,children)->{
+            System.out.println("Parent: "+parent);
+            for(String child : children) {
+                System.out.println("\t\tChild: " + child);
             }
-            return false;
-        }).collect(Collectors.toList());
-
-        System.out.println("Top level parents: "+topLevelParents.size());
-        System.out.println("Popular parents: "+popularParents.size());
-        System.out.println("Intermediary parents: "+intermediaryParents.size());
-        System.out.println("Popular titles: "+popularTitles.size());
-        System.out.println("All titles: "+allTitles.size());
-
-        topLevelParents.forEach(parent->{
-            System.out.println(parent);
         });
+
 
         Map<String,Integer> titleToIndexMap = new HashMap<>();
         Map<String,Integer> wordToIndexMap = new HashMap<>();
@@ -179,6 +156,57 @@ public class LearnTechnologyStatistics {
         Database.saveObject(allWordsList,wordListFile);
         Database.saveObject(allTitlesList,titleListFile);
         Database.saveObject(coocurrenceMatrix,matrixFile);
+    }
+
+    private static Set<String> findChildren(Node node, Collection<String> possible) {
+        Set<String> children = new HashSet<>();
+        Set<String> seen = new HashSet<>();
+        seen.add(node.getLabel());
+        node.getChildren().forEach(child->{
+            findChildrenHelper(child,seen,children,possible);
+        });
+        return children;
+    }
+
+    private static void findChildrenHelper(Node node, Set<String> seen, Set<String> set, Collection<String> possible) {
+        seen.add(node.getLabel());
+        if(possible==null||possible.contains(node.getLabel())) {
+            set.add(node.getLabel());
+        }
+        node.getChildren().forEach(child->{
+            if(!seen.contains(child.getLabel())) {
+                findChildrenHelper(child, seen, set, possible);
+            }
+        });
+    }
+
+    private static int countNodes(Node node) {
+        Set<String> seen = new HashSet<>();
+        return countNodesHelper(node,seen)-1;
+    }
+
+    private static int countNodesHelper(Node node, Set<String> seen) {
+        if(node.getChildren().isEmpty()) return 1;
+        else {
+            final Set<String> _seen = new HashSet<>(seen);
+            _seen.addAll(node.getChildren().stream().map(n->n.getLabel()).collect(Collectors.toList()));
+            return 1+node.getChildren().stream().filter(n->!seen.contains(n.getLabel())).mapToInt(n->countNodesHelper(n,_seen)).sum();
+        }
+    }
+
+
+    private static int computeDepth(Node node) {
+        Set<String> seen = new HashSet<>();
+        return computeDepthHelper(node,0,seen);
+    }
+
+    private static int computeDepthHelper(Node node, int score, Set<String> seen) {
+        if(node.getChildren().isEmpty()) return score;
+        else {
+            final Set<String> _seen = new HashSet<>(seen);
+            _seen.addAll(node.getChildren().stream().map(n->n.getLabel()).collect(Collectors.toList()));
+            return node.getChildren().stream().filter(n->!seen.contains(n.getLabel())).mapToInt(n->computeDepthHelper(n,score+1,_seen)).max().orElse(0);
+        }
     }
 
     public static void iterate(Consumer<CategoryWithText> consumer) {
