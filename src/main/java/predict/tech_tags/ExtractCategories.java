@@ -2,13 +2,13 @@ package main.java.predict.tech_tags;
 
 import main.java.nlp.wikipedia.WikiXMLParser;
 import main.java.nlp.wikipedia.WikiXMLParserFactory;
-import main.java.predict.Database;
 import main.java.predict.word2vec.FullPageStreamingHandler;
 import main.java.util.StopWords;
 
 import java.io.*;
 import java.net.MalformedURLException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -19,7 +19,7 @@ public class ExtractCategories {
 
     public static final Function<String,Boolean> shouldMatch = category -> {
         category=category.toLowerCase();
-        return category.contains("technology")||category.contains("computation")||category.contains("computing")||category.endsWith(" electronics")||category.contains("technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
+        return category.contains("technology")||category.endsWith(" standards")||category.contains("computation")||category.contains("computing")||category.endsWith(" electronics")||category.contains("technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
     };
 
     public static final Function<String,Boolean> shouldNotMatch = category -> {
