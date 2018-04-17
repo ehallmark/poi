@@ -26,6 +26,7 @@ public class LearnTechnologyStatistics {
     public static final File matrixFile = new File("tech_tag_statistics_matrix.jobj");
     public static final File titleListFile = new File("tech_tag_statistics_title_list.jobj");
     public static final File wordListFile = new File("tech_tag_statistics_word_list.jobj");
+    public static final File parentToChildrenMapFile = new File("tech_tag_statistics_parent_child_map.jobj");
     public static void main(String[] args) throws Exception {
         final Function<String[],Boolean> filterWordsFunction = words -> {
             if(words.length<3) return false;
@@ -41,6 +42,7 @@ public class LearnTechnologyStatistics {
         stopWords.add("system");
         final int minVocabSize = 10;
         final int vocabLimit = 25000;
+        final int minNumWords = 500;
         Map<String,AtomicDouble> vocabScore = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
         Map<String,AtomicLong> vocabCount = new HashMap<>();
@@ -52,6 +54,7 @@ public class LearnTechnologyStatistics {
         Consumer<CategoryWithText> vocabConsumer = category -> {
             numDocs.getAndIncrement();
             String[] words = textToWordFunction.apply(category.getText());
+            if(words.length<minNumWords) return;
             if(!filterWordsFunction.apply(words)) return;
             Node node = graph.addBinaryNode(category.getTitle());
             category.getCategories().forEach(link->{
@@ -97,7 +100,7 @@ public class LearnTechnologyStatistics {
         System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
-        List<String> topParents = new ArrayList<>(buildWeightedTree(allTitles.stream().map(t->graph.findNode(t)).collect(Collectors.toList()), 10));
+        List<String> topParents = new ArrayList<>(buildWeightedTree(allTitles.stream().map(t->graph.findNode(t)).collect(Collectors.toList()), 5));
 
         Map<String,Set<String>> parentsToChildrenMap = topParents.stream()
                 .collect(Collectors.toMap(e->e,e->findChildren(graph.findNode(e),null)));
@@ -113,13 +116,19 @@ public class LearnTechnologyStatistics {
             }
         });
 
+        Set<String> allTechnologyNodes = new HashSet<>();
+        parentsToChildrenMap.forEach((parent,children)->{
+            allTechnologyNodes.add(parent);
+            allTechnologyNodes.addAll(children);
+        });
+
 
         Map<String,Integer> titleToIndexMap = new HashMap<>();
         Map<String,Integer> wordToIndexMap = new HashMap<>();
 
         List<String> allWordsList = new ArrayList<>(filteredVocabCount.keySet());
         allWordsList.sort(Comparator.naturalOrder());
-        List<String> allTitlesList = new ArrayList<>(allTitles);
+        List<String> allTitlesList = new ArrayList<>(allTechnologyNodes);
         allTitlesList.sort(Comparator.naturalOrder());
 
         for(int i = 0; i < allWordsList.size(); i++) {
@@ -132,15 +141,32 @@ public class LearnTechnologyStatistics {
         final INDArray coocurrenceMatrix = Nd4j.zeros(allTitles.size(),filteredVocabCount.size());
         Consumer<CategoryWithText> mainConsumer = category -> {
             String title = category.getTitle();
+
             Integer titleIdx = titleToIndexMap.get(title);
             if(titleIdx==null) return;
             String[] words = textToWordFunction.apply(category.getText());
             if(!filterWordsFunction.apply(words)) return;
 
+            List<Integer> otherIndices = category.getCategories().stream()
+                    .map(c->{
+                        c = ExtractCategories.titleTransformer.apply(c);
+                        if(parentsToChildrenMap.containsKey(c)) {
+                            return c;
+                        } else {
+                            return null;
+                        }
+                    }).filter(c->c!=null)
+                    .map(c->titleToIndexMap.get(c))
+                    .collect(Collectors.toList());
+
+
             for(String word : words) {
                 Integer wordIdx = wordToIndexMap.get(word);
                 if(wordIdx!=null) {
                     coocurrenceMatrix.get(NDArrayIndex.point(titleIdx),NDArrayIndex.point(wordIdx)).addi(1d);
+                    otherIndices.forEach(otherIdx->{
+                        coocurrenceMatrix.get(NDArrayIndex.point(otherIdx),NDArrayIndex.point(wordIdx)).addi(1d);
+                    });
                 }
             }
 
@@ -151,6 +177,7 @@ public class LearnTechnologyStatistics {
         // save weights
         coocurrenceMatrix.diviColumnVector(coocurrenceMatrix.norm2(1));
 
+        Database.saveObject(parentsToChildrenMap,parentToChildrenMapFile);
         Database.saveObject(allWordsList,wordListFile);
         Database.saveObject(allTitlesList,titleListFile);
         Database.saveObject(coocurrenceMatrix,matrixFile);
