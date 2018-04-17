@@ -20,7 +20,7 @@ public class ExtractCategories {
 
     public static final Function<String,Boolean> shouldMatch = category -> {
         category=category.toLowerCase();
-        return category.endsWith(" technology")||category.endsWith(" technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
+        return category.endsWith(" technology")||category.endsWith(" electronics")||category.endsWith(" technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
     };
 
     public static final Function<String,Boolean> shouldNotMatch = category -> {
@@ -39,7 +39,7 @@ public class ExtractCategories {
                 return true;
             }
         }
-        return title.equals("open problems")||title.startsWith("science")||title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
+        return title.startsWith("formal ")||title.startsWith("books ")||title.equals("open problems")||title.startsWith("science")||title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
     };
 
     public static final Function<String,String> titleTransformer = title -> {
@@ -53,16 +53,28 @@ public class ExtractCategories {
 
     public static void main(String[] args) throws IOException {
         final int minShouldMatch = 1;
-        final int minNumWords = 500;
+        final int minChars = 10000;
         ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(TECH_CATEGORIES_WITH_TEXT_FILE)));
 
         AtomicLong cnt = new AtomicLong(0);
         AtomicLong valid = new AtomicLong(0);
         FullPageStreamingHandler handler = new FullPageStreamingHandler(wikiPage -> {
-            if(!shouldNotMatchTitle.apply(wikiPage.getTitle().toLowerCase())&&wikiPage.getCategories().stream().noneMatch(category->shouldNotMatch.apply(category))
-                    && wikiPage.getCategories().stream().filter(category->shouldMatch.apply(category)).count()>minShouldMatch) {
+            boolean should = false;
+            if(wikiPage.getTitle().toLowerCase().contains("internet of things")) {
+                // FLAG
+                System.out.println("CATEGORIES FOR IOT: "+wikiPage.getTitle()+": "+String.join("; ",wikiPage.getCategories()));
+                should=true;
+            } else if(wikiPage.getTitle().toLowerCase().contains("home automation")) {
+                System.out.println("CATEGORIES FOR HOME AUTOMATION: "+wikiPage.getTitle()+": "+String.join("; ",wikiPage.getCategories()));
+                should=true;
+            } else if(wikiPage.getTitle().toLowerCase().contains("connected car")) {
+                System.out.println("CATEGORIES FOR CONNECTED CAR: "+wikiPage.getTitle()+": "+String.join("; ",wikiPage.getCategories()));
+                should=true;
+            }
+            if(!shouldNotMatchTitle.apply(wikiPage.getTitle())&&wikiPage.getCategories().stream().noneMatch(category->shouldNotMatch.apply(category))
+                    && wikiPage.getCategories().stream().filter(category->shouldMatch.apply(category)).count()>=minShouldMatch) {
                 // check valid length of text
-                if(wikiPage.getText().split("\\s+",minNumWords+2).length>minNumWords) {
+                if(wikiPage.getText().length()>minChars) {
                     valid.getAndIncrement();
                     String title = wikiPage.getTitle();
                     title = titleTransformer.apply(title);
@@ -74,6 +86,10 @@ public class ExtractCategories {
                         System.exit(1);
                     }
                 }
+            } else if(should) {
+                System.out.println("DID NOT MATCH: "+wikiPage.getTitle());
+                System.out.println("CATEGORIES: "+String.join("; ",wikiPage.getCategories()));
+                //System.exit(1);
             }
             if(cnt.getAndIncrement()%10000==9999) {
                 System.out.println("Found "+valid.get()+" out of "+cnt.get());

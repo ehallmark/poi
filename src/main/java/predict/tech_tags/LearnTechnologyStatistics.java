@@ -97,10 +97,10 @@ public class LearnTechnologyStatistics {
         System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
-        List<String> topParents = parents.stream().map(parent->{
+        List<String> topParents = graph.getAllNodesList().stream().map(n->n.getLabel()).map(parent->{
             Node parentNode = graph.findNode(parent);
             return parentNode;
-        }).filter(p->countNodes(p)>=3)
+        }).filter(p->countNodes(p)>=4)
                 .map(p->p.getLabel())
                 .collect(Collectors.toList());
 
