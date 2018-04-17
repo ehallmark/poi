@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GiantWord2Vec {
-    public static final File modelFile = new File("word2vec_model.nn");
-    private static final int BATCH_SIZE = 1024;
+    public static final File modelFile = new File("word2vec_model_large.nn");
+    private static final int BATCH_SIZE = 512;
     private static org.deeplearning4j.models.word2vec.Word2Vec net128;
     private static org.deeplearning4j.models.word2vec.Word2Vec net256;
     private static org.deeplearning4j.models.word2vec.Word2Vec net512;
@@ -33,15 +33,15 @@ public class GiantWord2Vec {
 
     private static Word2Vec.Builder newBuilder(int vectorSize) {
         int windowSize = 7;
-        int minWordFrequency = 400;
-        double negativeSampling = 8;
+        int minWordFrequency = 100;//400;
+        double negativeSampling = 4;
         double sampling = 0.001;
         //double learningRate = 0.1;
         //double minLearningRate = 0.001;
         double learningRate = 0.05;
         double minLearningRate = 0.0001;
 
-        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles(),0,200000000,-1);
+        ZippedFileSequenceIterator iterator = new ZippedFileSequenceIterator(new File("word2vec_text/").listFiles(),0,500000000,-1);
         DefaultTokenizerFactory tf = new DefaultTokenizerFactory();
         tf.setTokenPreProcessor(new TokenPreProcess() {
             @Override

@@ -118,7 +118,7 @@ public class LearnTechnologyStatistics {
     }
 
     public static void iterate(Consumer<CategoryWithText> consumer) {
-        try(ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(WriteTechnologiesToText.categoriesWithTextFile)))) {
+        try(ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ExtractCategories.TECH_CATEGORIES_WITH_TEXT_FILE)))) {
             Object obj = null;
             while((obj=ois.readObject())!=null) {
                 consumer.accept((CategoryWithText)obj);
