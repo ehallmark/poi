@@ -39,10 +39,11 @@ public class LearnTechnologyStatistics {
         final Set<String> stopWords = new HashSet<>(StopWords.getStopWords());
         stopWords.add("nbsp");
         stopWords.add("system");
-        final int minVocabSize = 5;
+        final int minVocabSize = 10;
         final int vocabLimit = 25000;
         Map<String,AtomicDouble> vocabScore = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
+        Map<String,AtomicLong> vocabCount = new HashMap<>();
         Set<String> allTitles = new HashSet<>();
         AtomicLong numDocs = new AtomicLong(0);
         AtomicLong numWords = new AtomicLong(0);
@@ -65,6 +66,8 @@ public class LearnTechnologyStatistics {
                 if(!stopWords.contains(word)) {
                     vocabScore.putIfAbsent(word, new AtomicDouble(0));
                     vocabScore.get(word).getAndAdd(1d/words.length);
+                    vocabCount.putIfAbsent(word, new AtomicLong(0));
+                    vocabCount.get(word).getAndIncrement();
                 }
             }
             for(String word : new HashSet<>(Arrays.asList(words))) {
@@ -87,7 +90,7 @@ public class LearnTechnologyStatistics {
                     double s2 = (e2.getValue().get())/Math.log(1f+docCount.get(e2.getKey()).get());
                     return Double.compare(s2,s1);
                 })
-                .filter(e->e.getValue().get()*averageNumWords>minVocabSize&&((double)docCount.get(e.getKey()).get())<((double)0.6*numDocs.get()))
+                .filter(e->vocabCount.get(e.getKey()).get()*averageNumWords>minVocabSize&&((double)docCount.get(e.getKey()).get())<((double)0.6*numDocs.get()))
                 .limit(vocabLimit)
                 .collect(Collectors.toMap(e->e.getKey(),e->e.getValue()));
 
@@ -97,7 +100,7 @@ public class LearnTechnologyStatistics {
         List<String> topParents = parents.stream().map(parent->{
             Node parentNode = graph.findNode(parent);
             return parentNode;
-        }).filter(p->countNodes(p)>=5)
+        }).filter(p->countNodes(p)>=3)
                 .map(p->p.getLabel())
                 .collect(Collectors.toList());
 
