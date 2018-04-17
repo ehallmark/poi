@@ -1,5 +1,6 @@
 package main.java.predict.tech_tags;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import main.java.predict.Database;
 import main.java.util.StopWords;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -26,11 +27,13 @@ public class LearnTechnologyStatistics {
         stopWords.add("nbsp");
         stopWords.add("system");
         final int minVocabSize = 10;
-        final int vocabLimit = 20000;
-        Map<String,AtomicLong> vocabCount = new HashMap<>();
+        final int vocabLimit = 10000;
+        Map<String,AtomicDouble> vocabScore = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
         Set<String> allTitles = new HashSet<>();
+        AtomicLong numDocs = new AtomicLong(0);
         Consumer<CategoryWithText> vocabConsumer = category -> {
+            numDocs.getAndIncrement();
             String[] words = textToWordFunction.apply(category.getText());
             if(words.length<3) return;
             for(int i = 0; i < 3; i++) {
@@ -39,8 +42,8 @@ public class LearnTechnologyStatistics {
             allTitles.add(category.getTitle());
             for(String word : words) {
                 if(!stopWords.contains(word)) {
-                    vocabCount.putIfAbsent(word, new AtomicLong(0));
-                    vocabCount.get(word).getAndIncrement();
+                    vocabScore.putIfAbsent(word, new AtomicDouble(0));
+                    vocabScore.get(word).getAndAdd(1d/words.length);
                 }
             }
             for(String word : new HashSet<>(Arrays.asList(words))) {
@@ -54,13 +57,13 @@ public class LearnTechnologyStatistics {
         // vocab pass
         iterate(vocabConsumer);
 
-        Map<String,AtomicLong> filteredVocabCount = vocabCount.entrySet().stream()
+        Map<String,AtomicDouble> filteredVocabCount = vocabScore.entrySet().stream()
                 .sorted((e1,e2)->{
-                    double s1 = ((double)e1.getValue().get())/Math.log(1f+docCount.get(e1.getKey()).get());
-                    double s2 = ((double)e2.getValue().get())/Math.log(1f+docCount.get(e2.getKey()).get());
+                    double s1 = (e1.getValue().get())/Math.log(1f+docCount.get(e1.getKey()).get());
+                    double s2 = (e2.getValue().get())/Math.log(1f+docCount.get(e2.getKey()).get());
                     return Double.compare(s2,s1);
                 })
-                .filter(e->e.getValue().get()>minVocabSize)
+                .filter(e->e.getValue().get()>minVocabSize&&((double)docCount.get(e.getKey()).get())<((double)0.5*numDocs.get()))
                 .limit(vocabLimit)
                 .map(e->{
                     System.out.println(e.getKey()+": "+e.getValue().get());
@@ -69,7 +72,7 @@ public class LearnTechnologyStatistics {
                 .collect(Collectors.toMap(e->e.getKey(),e->e.getValue()));
 
 
-        System.out.println("Vocab size before: "+vocabCount.size());
+        System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
         Map<String,Integer> titleToIndexMap = new HashMap<>();
