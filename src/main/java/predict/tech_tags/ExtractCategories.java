@@ -19,13 +19,13 @@ public class ExtractCategories {
 
     public static final Function<String,Boolean> shouldMatch = category -> {
         category=category.toLowerCase();
-        return category.contains("technology")||category.endsWith(" standards")||category.contains("computation")||category.contains("computing")||category.endsWith(" electronics")||category.contains("technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
+        return category.contains("technology")||category.endsWith("distribution")||category.endsWith("services")||category.endsWith(" systems")||category.startsWith("applications of")||category.endsWith(" techniques")||category.endsWith(" advertising")||category.endsWith(" reality")||category.endsWith(" processes")||category.endsWith(" equipment")|| category.endsWith(" infrastructure")||category.endsWith(" standards")||category.contains("computation")||category.contains("computing")||category.endsWith(" electronics")||category.contains("technologies")||category.endsWith(" inventions") || category.contains("science") || category.contains("engineering");
     };
 
     public static final Function<String,Boolean> shouldNotMatch = category -> {
-        if(category.replaceFirst("[1][0-8][0-9]{2}","").length()<category.length()) return true; // match old years
+        if(category.replaceFirst("[1][0-9][0-8][0-9]","").length()<category.length()||category.replaceFirst("[1][0-8][0-9]{2}","").length()<category.length()) return true; // match old years
         category=category.toLowerCase();
-        return category.endsWith("in science")||category.contains("establishments")||category.contains("providers")||category.contains("pseudoscience")||category.contains("poets")||category.contains("playwrights")||category.contains("novelists")||category.startsWith("philosophy of")||category.startsWith("regulation of")||category.contains("fiction")||category.contains("men in")||category.startsWith("history of")||category.contains("prehistor")||category.contains("antiquity")||category.contains("renaissance")||category.contains("middle ages")||category.contains("obsolete")||category.contains("ancient")||category.contains("historical")||category.contains("video games")||category.contains("author")||category.contains("television series")||category.contains("treaties")||category.contains("companies")||category.contains("people") || category.contains("alumni") || category.contains("colleges") || category.contains("universit") || category.contains("places")||category.contains("recipients")||category.contains("winners");
+        return category.contains(" parks ")||category.endsWith("competitions")||category.endsWith("anthems")||category.contains("products")||category.contains("religio")||category.contains("scientists")||category.endsWith(" deaths")||category.endsWith(" births")||category.contains("world war")||category.contains("nazi")||category.contains("astronomical object")|| category.endsWith("in science")||category.contains("establishments")||category.contains("providers")||category.contains("pseudoscience")||category.contains("poets")||category.contains("playwrights")||category.contains("novelists")||category.startsWith("philosophy of")||category.startsWith("regulation of")||category.contains("fiction")||category.contains("men in")||category.endsWith(" languages")||category.startsWith("history of")||category.contains("prehistor")||category.contains("antiquity")||category.contains("renaissance")||category.contains("middle ages")||category.contains("obsolete")||category.contains("ancient")||category.contains("historical")||category.contains("video games")||category.contains("author")||category.contains("television series")||category.contains("treaties")||category.contains("companies")||category.contains("people") || category.contains("alumni") || category.contains("colleges") || category.contains("universit") || category.contains(" places ")||category.startsWith(" places")||category.contains("recipients")||category.contains("winners");
     };
 
     private static final Set<String> STOP_WORDS = new HashSet<>(StopWords.getStopWords());
@@ -35,18 +35,24 @@ public class ExtractCategories {
         if(words.length>3) return true;
         else if(words.length==3) {
             if(!words[1].equals("aerial")) {
-                if (!(!STOP_WORDS.contains(words[0]) && !STOP_WORDS.contains(words[2]) && STOP_WORDS.contains(words[1]))) {
+                if (words[1].equals("it")||!(!STOP_WORDS.contains(words[0]) && !STOP_WORDS.contains(words[2]) && STOP_WORDS.contains(words[1]))) {
                     return true;
                 }
             }
         }
-        return title.startsWith("formal ")||title.startsWith("books ")||title.equals("open problems")||title.startsWith("science")||title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
+        return title.contains("sexism")||title.contains("racism")||title.startsWith("formal ")||title.startsWith("books ")||title.equals("open problems")||title.startsWith("science")||title.endsWith(" of science")||title.equals("formal methods")||title.contains("mitsubishi") || title.contains("acquisitions")||title.contains(":") || title.contains("russian") || title.startsWith("regulation of")||title.startsWith("philosophy of")|| title.contains(" in ") || title.endsWith("inventions") || title.startsWith("history of ") || title.endsWith(" musical instruments") || title.endsWith("byte") || title.split(" ").length>3 || title.replaceFirst("[^a-z ]","").length()!=title.length();
     };
 
     public static final Function<String,String> titleTransformer = title -> {
         title = title.toUpperCase();
+        if(title.endsWith(" TECHNOLOGIES")) {
+            title = title.substring(0,title.length()-3)+"Y"; // convert technologies to technology
+        }
         if(title.startsWith("TECHNOLOGY OF ")) {
             title = title.substring(14)+" TECHNOLOGY";
+        }
+        if(title.endsWith(" TERMINOLOGY")) {
+            title = title.substring(0,title.length()-" TERMINOLOGY".length())+ " TECHNOLOGY";
         }
         return title;
     };
@@ -75,11 +81,12 @@ public class ExtractCategories {
             if(!shouldNotMatchTitle.apply(wikiPage.getTitle())&&wikiPage.getCategories().stream().noneMatch(category->shouldNotMatch.apply(category))
                     && wikiPage.getCategories().stream().filter(category->shouldMatch.apply(category)).count()>=minShouldMatch) {
                 // check valid length of text
+
                 if(wikiPage.getText().length()>minChars) {
                     valid.getAndIncrement();
                     String title = wikiPage.getTitle();
                     title = titleTransformer.apply(title);
-                  //  System.out.println("Found: " + wikiPage.getTitle()+": "+String.join("; ",wikiPage.getCategories()));
+                  if(valid.get()%10==9)  System.out.println("Found: " + wikiPage.getTitle()+": "+String.join("; ",wikiPage.getCategories()));
                     try {
                         oos.writeObject(CategoryWithText.create(title, wikiPage.getCategories(), wikiPage.getLinks(), wikiPage.getText()));
                     } catch (Exception e) {

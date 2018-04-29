@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LearnTechnologyStatistics {
     private static final Function<String,String[]> textToWordFunction = text -> {
@@ -41,7 +42,8 @@ public class LearnTechnologyStatistics {
         stopWords.add("nbsp");
         stopWords.add("system");
         final int minVocabSize = 10;
-        final int vocabLimit = 25000;
+        final int vocabLimit = 40000;
+        final int maxWordsPerDoc = 1000;
         final int minNumWords = 500;
         Map<String,AtomicDouble> vocabScore = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
@@ -50,7 +52,6 @@ public class LearnTechnologyStatistics {
         AtomicLong numDocs = new AtomicLong(0);
         AtomicLong numWords = new AtomicLong(0);
         Graph graph = new BayesianNet();
-        Set<String> parents = new HashSet<>();
         Consumer<CategoryWithText> vocabConsumer = category -> {
             numDocs.getAndIncrement();
             String[] words = textToWordFunction.apply(category.getText());
@@ -62,7 +63,6 @@ public class LearnTechnologyStatistics {
                 if(ExtractCategories.shouldNotMatchTitle.apply(link)) return;
                 Node parent = graph.addBinaryNode(link);
                 graph.connectNodes(parent,node);
-                parents.add(link);
             });
             allTitles.add(category.getTitle());
             for(String word : words) {
@@ -159,16 +159,22 @@ public class LearnTechnologyStatistics {
                     .map(c->titleToIndexMap.get(c))
                     .collect(Collectors.toList());
 
+            Map<String,Double> tfidfMap = Stream.of(words).collect(Collectors.groupingBy(e->e,Collectors.counting())).entrySet().stream()
+                    .map(e->{
+                        return new Pair<>(e.getKey(),((double)e.getValue())/Math.log(Math.E+docCount.get(e.getKey()).get()));
+                    }).sorted((e1, e2)->{
+                        return Double.compare(e2.getRight(),e1.getRight());
+                    }).limit(Math.min(maxWordsPerDoc,words.length/2)).collect(Collectors.toMap(e->e.getKey(),e->e.getValue()));
 
-            for(String word : words) {
-                Integer wordIdx = wordToIndexMap.get(word);
+            tfidfMap.forEach((k,v)->{
+                Integer wordIdx = wordToIndexMap.get(k);
                 if(wordIdx!=null) {
-                    coocurrenceMatrix.get(NDArrayIndex.point(titleIdx),NDArrayIndex.point(wordIdx)).addi(1d);
+                    coocurrenceMatrix.get(NDArrayIndex.point(titleIdx),NDArrayIndex.point(wordIdx)).addi(v);
                     otherIndices.forEach(otherIdx->{
-                        coocurrenceMatrix.get(NDArrayIndex.point(otherIdx),NDArrayIndex.point(wordIdx)).addi(1d);
+                        coocurrenceMatrix.get(NDArrayIndex.point(otherIdx),NDArrayIndex.point(wordIdx)).addi(v);
                     });
                 }
-            }
+            });
 
         };
         // main pass
