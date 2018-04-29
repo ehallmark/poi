@@ -6,6 +6,8 @@ import main.java.graphical_modeling.model.graphs.Graph;
 import main.java.graphical_modeling.model.nodes.Node;
 import main.java.predict.Database;
 import main.java.util.StopWords;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
@@ -17,12 +19,30 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class LearnTechnologyStatistics {
+    private static final File dictionaryFile = new File("word_list2.txt");
+
     private static final Function<String,String[]> textToWordFunction = text -> {
         return text.toLowerCase().replaceAll("[^a-z ]"," ").split("\\s+");
     };
+
+    public static Set<String> loadDictionary() {
+        Set<String> dictionary = Collections.synchronizedSet(new HashSet<>());
+        try {
+            LineIterator iter = FileUtils.lineIterator(dictionaryFile);
+            while (iter.hasNext()) {
+                dictionary.add(iter.next().toLowerCase().trim());
+            }
+            LineIterator.closeQuietly(iter);
+            System.out.println("Finished reading dictionary. Size: " + dictionary.size());
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return dictionary;
+    }
 
     public static final File matrixFile = new File("tech_tag_statistics_matrix.jobj");
     public static final File titleListFile = new File("tech_tag_statistics_title_list.jobj");
@@ -38,13 +58,14 @@ public class LearnTechnologyStatistics {
         };
 
 
+        final Set<String> dictionary = new HashSet<>(loadDictionary());
         final Set<String> stopWords = new HashSet<>(StopWords.getStopWords());
         stopWords.add("nbsp");
         stopWords.add("system");
         final int minVocabSize = 10;
         final int vocabLimit = 40000;
-        final int maxWordsPerDoc = 1000;
-        final int minNumWords = 500;
+        final int maxWordsPerDoc = 2000;
+        final int minNumWords = 100;
         Map<String,AtomicDouble> vocabScore = new HashMap<>();
         Map<String,AtomicLong> docCount = new HashMap<>();
         Map<String,AtomicLong> vocabCount = new HashMap<>();
@@ -61,10 +82,14 @@ public class LearnTechnologyStatistics {
             category.getCategories().forEach(link->{
                 link = ExtractCategories.titleTransformer.apply(link);
                 if(ExtractCategories.shouldNotMatchTitle.apply(link)) return;
-                Node parent = graph.addBinaryNode(link);
-                graph.connectNodes(parent,node);
+                if(Stream.of(link.toLowerCase().split(" ")).allMatch(w->dictionary.contains(w))) {
+                    Node parent = graph.addBinaryNode(link);
+                    graph.connectNodes(parent, node);
+                }
             });
-            allTitles.add(category.getTitle());
+            if(Stream.of(category.getTitle().toLowerCase().split(" ")).allMatch(w->dictionary.contains(w))) {
+                allTitles.add(category.getTitle());
+            }
             for(String word : words) {
                 if(!stopWords.contains(word)) {
                     vocabScore.putIfAbsent(word, new AtomicDouble(0));
@@ -100,27 +125,36 @@ public class LearnTechnologyStatistics {
         System.out.println("Vocab size before: "+vocabScore.size());
         System.out.println("Vocab size after: "+filteredVocabCount.size());
 
-        List<String> topParents = new ArrayList<>(buildWeightedTree(allTitles.stream().map(t->graph.findNode(t)).collect(Collectors.toList()), 5));
+        List<String> topParents = new ArrayList<>(buildWeightedTree(allTitles.stream().map(t->graph.findNode(t)).collect(Collectors.toList()), 4));
 
         Map<String,Set<String>> parentsToChildrenMap = topParents.stream()
                 .collect(Collectors.toMap(e->e,e->findChildren(graph.findNode(e),null)));
 
-        System.out.println("Top level parents: "+parentsToChildrenMap.size());
-
-
-        // map top level to intermediary level
-        parentsToChildrenMap.forEach((parent,children)->{
-            System.out.println("Parent: "+parent);
-            for(String child : children) {
-                System.out.println("\t\tChild: " + child);
-            }
-        });
 
         Set<String> allTechnologyNodes = new HashSet<>();
         parentsToChildrenMap.forEach((parent,children)->{
             allTechnologyNodes.add(parent);
             allTechnologyNodes.addAll(children);
         });
+
+        System.out.println("Total dictionary titles: "+allTechnologyNodes.size());
+        allTechnologyNodes.removeIf(tech->{
+            return !Stream.of(tech.toLowerCase().split(" ")).allMatch(w->dictionary.contains(w));
+        });
+        System.out.println("Valid dictionary titles: "+allTechnologyNodes.size());
+
+        // map top level to intermediary level
+        parentsToChildrenMap.forEach((parent,children)->{
+            if(allTechnologyNodes.contains(parent)) {
+                System.out.println("Parent: " + parent);
+                for (String child : children) {
+                    if (allTechnologyNodes.contains(child)) {
+                        System.out.println("\t\tChild: " + child);
+                    }
+                }
+            }
+        });
+        System.out.println("Top level parents: "+parentsToChildrenMap.size());
 
 
         Map<String,Integer> titleToIndexMap = new HashMap<>();
@@ -138,7 +172,7 @@ public class LearnTechnologyStatistics {
             titleToIndexMap.put(allTitlesList.get(i),i);
         }
 
-        final INDArray coocurrenceMatrix = Nd4j.zeros(allTitles.size(),filteredVocabCount.size());
+        final INDArray coocurrenceMatrix = Nd4j.zeros(allTitlesList.size(),allWordsList.size());
         Consumer<CategoryWithText> mainConsumer = category -> {
             String title = category.getTitle();
 
@@ -157,9 +191,10 @@ public class LearnTechnologyStatistics {
                         }
                     }).filter(c->c!=null)
                     .map(c->titleToIndexMap.get(c))
+                    .filter(i->i!=null)
                     .collect(Collectors.toList());
 
-            Map<String,Double> tfidfMap = Stream.of(words).collect(Collectors.groupingBy(e->e,Collectors.counting())).entrySet().stream()
+            Map<String,Double> tfidfMap = Stream.of(words).filter(word->!stopWords.contains(word)&&wordToIndexMap.containsKey(word)).collect(Collectors.groupingBy(e->e,Collectors.counting())).entrySet().stream()
                     .map(e->{
                         return new Pair<>(e.getKey(),((double)e.getValue())/Math.log(Math.E+docCount.get(e.getKey()).get()));
                     }).sorted((e1, e2)->{
@@ -180,13 +215,23 @@ public class LearnTechnologyStatistics {
         // main pass
         iterate(mainConsumer);
 
+        int[] invalid = coocurrenceMatrix.gt(0).sum(1).lt(minNumWords/10).data().asInt();
+        int[] rowsToPull = IntStream.range(0,allTitlesList.size()).filter(i->invalid[i]==0).toArray();
+        for(int i = invalid.length-1; i >= 0; i--) {
+            if(invalid[i]>0) {
+                allTitlesList.remove(i);
+            }
+        }
+        INDArray validCoocurrenceMatrix = coocurrenceMatrix.getRows(rowsToPull);
         // save weights
-        coocurrenceMatrix.diviColumnVector(coocurrenceMatrix.norm2(1));
+        validCoocurrenceMatrix.diviColumnVector(validCoocurrenceMatrix.norm2(1));
+
+        System.out.println("Num valid: "+(rowsToPull.length));
 
         Database.saveObject(parentsToChildrenMap,parentToChildrenMapFile);
         Database.saveObject(allWordsList,wordListFile);
         Database.saveObject(allTitlesList,titleListFile);
-        Database.saveObject(coocurrenceMatrix,matrixFile);
+        Database.saveObject(validCoocurrenceMatrix,matrixFile);
     }
 
 
@@ -200,14 +245,18 @@ public class LearnTechnologyStatistics {
     }
 
     private static void buildWeightedTreeHelper(Node node, int minimumSize, Set<String> parents, Set<String> seen) {
+        if(seen.contains(node.getLabel())) return;
         seen.add(node.getLabel());
-        if(countNodes(node)>=minimumSize) {
-            parents.add(node.getLabel());
-            return;
+        int c = countNodes(node);
+        if(c>=minimumSize) {
+            if(node.getParents().isEmpty()||(node.getParents().size()>1&&c>2*minimumSize)) {
+                parents.add(node.getLabel());
+            }
+            //return;
         }
         for(Node parent : node.getParents()) {
             if(seen.contains(parent.getLabel())) continue;
-            buildWeightedTreeHelper(parent,minimumSize,parents,seen);
+            buildWeightedTreeHelper(parent,minimumSize,parents,new HashSet<>(seen));
         }
     }
 
