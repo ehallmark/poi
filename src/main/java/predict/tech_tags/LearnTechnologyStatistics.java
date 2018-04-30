@@ -48,6 +48,7 @@ public class LearnTechnologyStatistics {
     public static final File titleListFile = new File("tech_tag_statistics_title_list.jobj");
     public static final File wordListFile = new File("tech_tag_statistics_word_list.jobj");
     public static final File parentToChildrenMapFile = new File("tech_tag_statistics_parent_child_map.jobj");
+    public static final File titleToTextMapFile = new File("tech_tag_title_to_text_map.jobj");
     public static void main(String[] args) throws Exception {
         final Function<String[],Boolean> filterWordsFunction = words -> {
             if(words.length<3) return false;
@@ -172,6 +173,7 @@ public class LearnTechnologyStatistics {
             titleToIndexMap.put(allTitlesList.get(i),i);
         }
 
+        final Map<String,String[]> titleToTextMap = new HashMap<>();
         final INDArray coocurrenceMatrix = Nd4j.zeros(allTitlesList.size(),allWordsList.size());
         Consumer<CategoryWithText> mainConsumer = category -> {
             String title = category.getTitle();
@@ -193,6 +195,7 @@ public class LearnTechnologyStatistics {
                     .map(c->titleToIndexMap.get(c))
                     .filter(i->i!=null)
                     .collect(Collectors.toList());
+            titleToTextMap.put(title,words);
 
             Map<String,Double> tfidfMap = Stream.of(words).filter(word->!stopWords.contains(word)&&wordToIndexMap.containsKey(word)).collect(Collectors.groupingBy(e->e,Collectors.counting())).entrySet().stream()
                     .map(e->{
@@ -232,6 +235,7 @@ public class LearnTechnologyStatistics {
         Database.saveObject(allWordsList,wordListFile);
         Database.saveObject(allTitlesList,titleListFile);
         Database.saveObject(validCoocurrenceMatrix,matrixFile);
+        Database.saveObject(titleToTextMap,titleToTextMapFile);
     }
 
 
