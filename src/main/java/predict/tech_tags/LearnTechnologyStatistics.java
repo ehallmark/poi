@@ -63,6 +63,9 @@ public class LearnTechnologyStatistics {
         final Set<String> stopWords = new HashSet<>(StopWords.getStopWords());
         stopWords.add("nbsp");
         stopWords.add("system");
+        stopWords.add("technology");
+        stopWords.add("technologies");
+        stopWords.add("invention");
         final int minVocabSize = 10;
         final int vocabLimit = 40000;
         final int maxWordsPerDoc = 2000;
