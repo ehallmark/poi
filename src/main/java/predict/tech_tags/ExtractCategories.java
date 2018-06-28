@@ -57,6 +57,9 @@ public class ExtractCategories {
         if(title.startsWith("APPLICATIONS OF ")) {
             title = title.substring("APPLICATIONS OF".length(),title.length()).trim();
         }
+        if(title.startsWith("APPLICATION OF ")) {
+            title = title.substring("APPLICATION OF".length(),title.length()).trim();
+        }
         return title;
     };
 
