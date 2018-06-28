@@ -140,7 +140,10 @@ public class LearnTechnologyStatistics {
 
         System.out.println("Total dictionary titles: "+allTechnologyNodes.size());
         allTechnologyNodes.removeIf(tech->{
-            return !Stream.of(tech.toLowerCase().split(" ")).allMatch(w->dictionary.contains(w));
+            boolean remove = !Stream.of(tech.toLowerCase().split(" ")).allMatch(w->dictionary.contains(w));
+            if(remove)
+                System.out.println("Removing: "+tech);
+            return remove;
         });
         System.out.println("Valid dictionary titles: "+allTechnologyNodes.size());
 
