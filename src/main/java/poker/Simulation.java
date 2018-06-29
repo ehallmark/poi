@@ -1,9 +1,9 @@
 package main.java.poker;
 
-import javax.smartcardio.Card;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Simulation {
@@ -55,7 +55,11 @@ public class Simulation {
         Card turn = nextCard();
         nextCard(); // burn
         Card river = nextCard();
-
+        for(Hand hand : hands) {
+            Card[] cards = new Card[]{hand.cards[0],hand.cards[1],flop[0],flop[1],flop[2]};
+            double score = scoreHand(cards);
+            System.out.println("Score of hand "+score+": "+Arrays.toString(cards));
+        }
         return hands;
     }
 
@@ -110,13 +114,11 @@ public class Simulation {
         return counts.values().stream().mapToInt(d->d.intValue()).max().orElse(1);
     }
 
-    public boolean containsFullHouse(Card[] cards) {
-        Map<Integer,Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e->e.num, Collectors.counting()));
+    public boolean containsFullHouse(Card[] cards, Map<Integer, Long> counts) {
         return counts.size()==2 && Arrays.asList(2,3).contains(counts.get(cards[0].num));
     }
 
-    public boolean containsTwoPair(Card[] cards) {
-        Map<Integer,Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e->e.num, Collectors.counting()));
+    public boolean containsTwoPair(Card[] cards, Map<Integer,Long> counts) {
         return counts.size()==3 && counts.values().stream().mapToInt(d->d.intValue()).max().orElse(1)==2;
     }
 
@@ -126,24 +128,43 @@ public class Simulation {
         if(cards.length!=5) throw new RuntimeException("Can only score 5 cards at a time.");
         boolean flush = containsFlush(cards);
         boolean straight = containsStraight(cards);
+        Map<Integer,Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e->e.num, Collectors.counting()));
+        Map<Long,Integer> countToCardIdx;
+        if(counts.size()<=2) {
+            countToCardIdx = counts.entrySet().stream().collect(Collectors.toMap(e -> e.getValue(), e -> e.getKey()));
+        } else {
+            countToCardIdx = Collections.emptyMap();
+        }
+        int[] sortedCardNumbers = counts.keySet().stream().mapToInt(e->e==1?14:e).sorted().toArray();
+        double highCardBoost = IntStream.range(0,sortedCardNumbers.length).mapToDouble(i->((double) sortedCardNumbers[sortedCardNumbers.length-1-i])/Math.pow(15.0,i+1)).sum();
         double score = 0d;
         if(flush && straight) {
             // straight flush!
-            score = Math.max(score, 8d);
+            score = Math.max(score, 8d+highCardBoost);
         } else if (flush) {
-            score = Math.max(score, 5d);
+            score = Math.max(score, 5d+highCardBoost);
         } else if (straight) {
-            score = Math.max(score, 4d);
+            score = Math.max(score, 4d+highCardBoost);
         }
         int largestN  = largestNOfAKind(cards);
         if(largestN==4) {
             // 4 of a kind
-            score = Math.max(score, 7d);
+            int cardIdx = countToCardIdx.get(4L);
+            if(cardIdx==1) cardIdx = 14;
+            int cardIdx2 = countToCardIdx.get(1L);
+            if(cardIdx2==1) cardIdx2 = 14;
+            double bonus = ((double)cardIdx)/15.0 + ((double)cardIdx2)/(15.0*15.0);
+            score = Math.max(score, 7d+bonus);
         } else if (largestN==3) {
             // check for full house
-            boolean fullHouse = containsFullHouse(cards);
+            boolean fullHouse = containsFullHouse(cards,counts);
             if(fullHouse) {
-                score = Math.max(score, 6d);
+                int cardIdx = countToCardIdx.get(3L);
+                if(cardIdx==1) cardIdx = 14;
+                int cardIdx2 = countToCardIdx.get(2L);
+                if(cardIdx2==1) cardIdx2 = 14;
+                double bonus = ((double)cardIdx)/15.0 + ((double)cardIdx2)/(15.0*15.0);
+                score = Math.max(score, 6d+bonus);
 
             } else {
                 // 3 of a kind
@@ -151,7 +172,7 @@ public class Simulation {
             }
         } else if (largestN==2) {
             // check 2 pair
-            boolean twoPair = containsTwoPair(cards);
+            boolean twoPair = containsTwoPair(cards,counts);
             if(twoPair) {
                 // two pair
                 score = Math.max(score, 2d);
@@ -160,15 +181,13 @@ public class Simulation {
                 score = Math.max(score, 1d);
             }
         } else {
-            score = Math.max(score, 0d);
+            score = Math.max(score, highCardBoost);
         }
 
         return score;
     }
 
 
-
-    public static double probabilityOfHand()
 
 
     class Hand {
@@ -194,6 +213,5 @@ public class Simulation {
         for(Hand hand : hands) {
             System.out.println("Hand: "+hand);
         }
-
     }
 }
