@@ -3,7 +3,11 @@ package main.java.poker;
 import org.nd4j.linalg.primitives.Pair;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -258,41 +262,105 @@ public class Simulation {
     public static boolean twoCardHandsAreEqual(Hand h1, Hand h2) {
         return (h1.cards[0].equals(h2.cards[0]) && h1.cards[1].equals(h2.cards[1])) || (h1.cards[0].equals(h2.cards[1]) && h1.cards[1].equals(h2.cards[0]));
     }
+    public static boolean threeCardHandsAreEqual(Hand h1, Hand h2) {
+        return (h1.cards[0].equals(h2.cards[0])&&h1.cards[1].equals(h2.cards[1])&&h1.cards[2].equals(h2.cards[2])) ||
+                (h1.cards[0].equals(h2.cards[1])&&h1.cards[1].equals(h2.cards[0])&&h1.cards[2].equals(h2.cards[2])) ||
+                (h1.cards[0].equals(h2.cards[2])&&h1.cards[1].equals(h2.cards[0])&&h1.cards[2].equals(h2.cards[1])) ||
+                (h1.cards[0].equals(h2.cards[0])&&h1.cards[1].equals(h2.cards[2])&&h1.cards[2].equals(h2.cards[1])) ||
+                (h1.cards[0].equals(h2.cards[1])&&h1.cards[1].equals(h2.cards[2])&&h1.cards[2].equals(h2.cards[0])) ||
+                (h1.cards[0].equals(h2.cards[2])&&h1.cards[1].equals(h2.cards[1])&&h1.cards[2].equals(h2.cards[0]));
+    }
 
-    public static double probabilityWinningHand(Hand hand, int numPlayers, int numSimulations) {
-        Simulation simulation = new Simulation(numPlayers);
-        int wins = 0;
-        int relevantTotal = 0;
+    public static double probabilityWinningHand(Hand hand, Card[] flop, Card turn, Card river, int numPlayers, int numSimulations) {
+        AtomicLong wins = new AtomicLong(0L);
+        AtomicLong relevantTotal = new AtomicLong(0L);
+        int numThreads = 10;
+        ExecutorService service = Executors.newFixedThreadPool(numThreads);
         for (int i = 0; i < numSimulations; i++) {
-            simulation.dealHands();
-            boolean foundHand = false;
-            for (Hand h : simulation.hands) {
-                if (twoCardHandsAreEqual(h, hand)) {
-                    foundHand = true;
-                    break;
+            service.execute(()-> {
+                Simulation simulation = new Simulation(numPlayers);
+                simulation.dealHands();
+                boolean foundHand = false;
+                for (Hand h : simulation.hands) {
+                    if (twoCardHandsAreEqual(h, hand)) {
+                        foundHand = true;
+                        break;
+                    }
                 }
-            }
-            if (foundHand) {
-                relevantTotal++;
-                simulation.showFlop();
-                simulation.showTurn();
-                simulation.showRiver();
-                Pair<Hand, Double> best = simulation.simulateHand();
-                if (twoCardHandsAreEqual(hand, best.getFirst())) {
-                    // close enough
-                    wins++;
+                if (foundHand) {
+                    simulation.showFlop();
+                    simulation.showTurn();
+                    simulation.showRiver();
+                    Pair<Hand, Double> best = simulation.simulateHand();
+                    Card[] flopActual = simulation.flop;
+                    Card turnActual = simulation.turn;
+                    Card riverActual = simulation.river;
+                    boolean foundShow = true;
+                    if (flop != null) {
+                        foundShow = false;
+                        Hand flopHand = new Hand();
+                        flopHand.cards = flop;
+                        Hand flopActualHand = new Hand();
+                        flopActualHand.cards = flopActual;
+                        if (threeCardHandsAreEqual(flopHand, flopActualHand)) {
+                            foundShow = true;
+                        }
+                    }
+                    if (foundShow && turn != null) {
+                        foundShow = false;
+                        if (turn.equals(turnActual)) {
+                            foundShow = true;
+                        }
+                    }
+                    if (foundShow && river != null) {
+                        foundShow = false;
+                        if (river.equals(riverActual)) {
+                            foundShow = true;
+                        }
+                    }
+
+                    if (foundShow) {
+                        relevantTotal.getAndIncrement();
+                        if (twoCardHandsAreEqual(hand, best.getFirst())) {
+                            // close enough
+                            wins.getAndIncrement();
+                        }
+                    }
+
                 }
-            }
+            });
         }
-        if (relevantTotal == 0) {
+        service.shutdown();
+        try {
+            service.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Relevant total: "+relevantTotal);
+        if (relevantTotal.get()==0) {
             return 0;
         } else {
-            return ((double) wins) / relevantTotal;
+            return ((double) wins.get()) / relevantTotal.get();
         }
     }
 
     public static void main(String[] args) {
         Hand hand = new Hand();
+        Card flop1 = new Card();
+        Card flop2 = new Card();
+        Card flop3 = new Card();
+        flop1.num=2;
+        flop2.num=7;
+        flop3.num=9;
+        flop1.suit='H';
+        flop2.suit='C';
+        flop3.suit='H';
+        Card[] flop = new Card[]{
+                flop1,
+                flop2,
+                flop3,
+        };
+        flop = null;
         for (int i = 1; i <= 13; i++) {
             for (char c : new char[]{'C'}) {
                 for (int j = 1; j <= 13; j++) {
@@ -309,8 +377,8 @@ public class Simulation {
                                     card2
                             };
 
-                            for (int numSimulations : Arrays.asList(500000)) {
-                                double prob = probabilityWinningHand(hand, 4, numSimulations);
+                            for (int numSimulations : Arrays.asList(1000000)) {
+                                double prob = probabilityWinningHand(hand, flop, null, null,2, numSimulations);
                                 System.out.println("Prob " + hand.toString() + " (n=" + numSimulations + "): " + prob);
                             }
                         }
