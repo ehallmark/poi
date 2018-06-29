@@ -294,23 +294,25 @@ public class Simulation {
     public static void main(String[] args) {
         Hand hand = new Hand();
         for (int i = 1; i <= 13; i++) {
-            for (char c : new char[]{'C', 'S', 'H', 'D'}) {
+            for (char c : new char[]{'C'}) {
                 for (int j = 1; j <= 13; j++) {
                     for (char h : new char[]{'C', 'S', 'H', 'D'}) {
-                        Card card1 = new Card();
-                        Card card2 = new Card();
-                        card1.num = i;
-                        card2.num = j;
-                        card1.suit = c;
-                        card2.suit = h;
-                        hand.cards = new Card[]{
-                                card1,
-                                card2
-                        };
+                        if(i!=j||c!=h) {
+                            Card card1 = new Card();
+                            Card card2 = new Card();
+                            card1.num = i;
+                            card2.num = j;
+                            card1.suit = c;
+                            card2.suit = h;
+                            hand.cards = new Card[]{
+                                    card1,
+                                    card2
+                            };
 
-                        for (int numSimulations : Arrays.asList(500000)) {
-                            double prob = probabilityWinningHand(hand, 4, numSimulations);
-                            System.out.println("Prob " + hand.toString() + " (n=" + numSimulations + "): " + prob);
+                            for (int numSimulations : Arrays.asList(500000)) {
+                                double prob = probabilityWinningHand(hand, 4, numSimulations);
+                                System.out.println("Prob " + hand.toString() + " (n=" + numSimulations + "): " + prob);
+                            }
                         }
                     }
                 }
