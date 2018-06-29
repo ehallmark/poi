@@ -85,7 +85,7 @@ public class Simulation {
             }
             nums.add(card.num);
         }
-        boolean straight = max-min==5&&nums.size()==5;
+        boolean straight = max-min==4&&nums.size()==5;
         if(!straight) {
             // need to check aces over kings
             min = 14;
@@ -102,7 +102,7 @@ public class Simulation {
                 }
                 nums.add(cardNum);
             }
-            straight = max-min==5&&nums.size()==5;
+            straight = max-min==4&&nums.size()==5;
         }
         return straight;
     }
@@ -115,10 +115,10 @@ public class Simulation {
     }
 
     public boolean containsFullHouse(Card[] cards, Map<Integer, Long> counts) {
-        return counts.size()==2 && Arrays.asList(2,3).contains(counts.get(cards[0].num));
+        return counts.size()==2 && Arrays.asList(2L,3L).contains(counts.get(cards[0].num));
     }
 
-    public boolean containsTwoPair(Card[] cards, Map<Integer,Long> counts) {
+    public boolean containsTwoPair(Map<Integer,Long> counts) {
         return counts.size()==3 && counts.values().stream().mapToInt(d->d.intValue()).max().orElse(1)==2;
     }
 
@@ -129,29 +129,35 @@ public class Simulation {
         boolean flush = containsFlush(cards);
         boolean straight = containsStraight(cards);
         Map<Integer,Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e->e.num, Collectors.counting()));
-        Map<Long,Integer> countToCardIdx;
-        if(counts.size()<=2) {
-            countToCardIdx = counts.entrySet().stream().collect(Collectors.toMap(e -> e.getValue(), e -> e.getKey()));
-        } else {
-            countToCardIdx = Collections.emptyMap();
-        }
+        Map<Long,List<Integer>> countToCardIdx = counts.entrySet().stream().collect(Collectors.groupingBy(e -> e.getValue(), Collectors.mapping(e->e.getKey(), Collectors.toCollection(ArrayList::new))));
         int[] sortedCardNumbers = counts.keySet().stream().mapToInt(e->e==1?14:e).sorted().toArray();
         double highCardBoost = IntStream.range(0,sortedCardNumbers.length).mapToDouble(i->((double) sortedCardNumbers[sortedCardNumbers.length-1-i])/Math.pow(15.0,i+1)).sum();
+        double highCardBoostStraight = 0d;
         double score = 0d;
+        if(straight) {
+            // check whether ace is low
+            if (counts.containsKey(1) && counts.containsKey(2)) {
+                int[] sortedCardNumbersAceLow = counts.keySet().stream().mapToInt(e -> e).sorted().toArray();
+                highCardBoostStraight = IntStream.range(0, sortedCardNumbersAceLow.length).mapToDouble(i -> ((double) sortedCardNumbersAceLow[sortedCardNumbersAceLow.length - 1 - i]) / Math.pow(15.0, i + 1)).sum();
+            } else {
+                highCardBoostStraight = highCardBoost;
+            }
+        }
         if(flush && straight) {
             // straight flush!
-            score = Math.max(score, 8d+highCardBoost);
+            // check whether ace is high card
+            score = Math.max(score, 8d+highCardBoostStraight);
         } else if (flush) {
             score = Math.max(score, 5d+highCardBoost);
         } else if (straight) {
-            score = Math.max(score, 4d+highCardBoost);
+            score = Math.max(score, 4d+highCardBoostStraight);
         }
         int largestN  = largestNOfAKind(cards);
         if(largestN==4) {
             // 4 of a kind
-            int cardIdx = countToCardIdx.get(4L);
+            int cardIdx = countToCardIdx.get(4L).get(0);
             if(cardIdx==1) cardIdx = 14;
-            int cardIdx2 = countToCardIdx.get(1L);
+            int cardIdx2 = countToCardIdx.get(1L).get(0);
             if(cardIdx2==1) cardIdx2 = 14;
             double bonus = ((double)cardIdx)/15.0 + ((double)cardIdx2)/(15.0*15.0);
             score = Math.max(score, 7d+bonus);
@@ -159,26 +165,45 @@ public class Simulation {
             // check for full house
             boolean fullHouse = containsFullHouse(cards,counts);
             if(fullHouse) {
-                int cardIdx = countToCardIdx.get(3L);
+                int cardIdx = countToCardIdx.get(3L).get(0);
                 if(cardIdx==1) cardIdx = 14;
-                int cardIdx2 = countToCardIdx.get(2L);
+                int cardIdx2 = countToCardIdx.get(2L).get(0);
                 if(cardIdx2==1) cardIdx2 = 14;
                 double bonus = ((double)cardIdx)/15.0 + ((double)cardIdx2)/(15.0*15.0);
                 score = Math.max(score, 6d+bonus);
 
             } else {
                 // 3 of a kind
-                score = Math.max(score, 3d);
+                // single pair
+                int tripleIdx = countToCardIdx.get(3L).get(0);
+                if(tripleIdx==1) tripleIdx=14;
+                int[] sortedNonPairs = countToCardIdx.get(1L).stream().mapToInt(e->e==1L?14:e).sorted().toArray();
+                double nonPairBoost = IntStream.range(0,sortedNonPairs.length).mapToDouble(i->((double) sortedNonPairs[sortedNonPairs.length-1-i])/Math.pow(15.0,i+1)).sum();
+                double bonus = ((double)tripleIdx)/15.0 + nonPairBoost/15.0;
+                score = Math.max(score, 3d+bonus);
             }
         } else if (largestN==2) {
             // check 2 pair
-            boolean twoPair = containsTwoPair(cards,counts);
+            boolean twoPair = containsTwoPair(counts);
             if(twoPair) {
                 // two pair
-                score = Math.max(score, 2d);
+                List<Integer> twoPairs = countToCardIdx.get(2L);
+                int cardIdx = twoPairs.get(0);
+                if(cardIdx==1) cardIdx = 14;
+                int cardIdx2 = twoPairs.get(1);
+                if(cardIdx2==1) cardIdx2 = 14;
+                int cardIdx3 = countToCardIdx.get(1L).get(0);
+                if(cardIdx3==1) cardIdx3 = 14;
+                double bonus = ((double)Math.max(cardIdx,cardIdx2))/15.0 + ((double)Math.min(cardIdx,cardIdx2))/(15.0*15.0) + ((double)cardIdx3)/(15.0*15.0*15.0);
+                score = Math.max(score, 2d+bonus);
             } else {
                 // single pair
-                score = Math.max(score, 1d);
+                int pairIdx = countToCardIdx.get(2L).get(0);
+                if(pairIdx==1) pairIdx=14;
+                int[] sortedNonPairs = countToCardIdx.get(1L).stream().mapToInt(e->e==1?14:e).sorted().toArray();
+                double nonPairBoost = IntStream.range(0,sortedNonPairs.length).mapToDouble(i->((double) sortedNonPairs[sortedNonPairs.length-1-i])/Math.pow(15.0,i+1)).sum();
+                double bonus = ((double)pairIdx)/15.0 + nonPairBoost/15.0;
+                score = Math.max(score, 1d+bonus);
             }
         } else {
             score = Math.max(score, highCardBoost);
@@ -208,10 +233,9 @@ public class Simulation {
     }
 
     public static void main(String[] args) {
-        Simulation simulation = new Simulation(5);
-        Hand[] hands = simulation.simulateHand();
-        for(Hand hand : hands) {
-            System.out.println("Hand: "+hand);
+        for (int i = 0; i < 1000000; i++) {
+            Simulation simulation = new Simulation(5);
+            Hand[] hands = simulation.simulateHand();
         }
     }
 }
