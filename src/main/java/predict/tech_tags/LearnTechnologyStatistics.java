@@ -146,10 +146,10 @@ public class LearnTechnologyStatistics {
         // map top level to intermediary level
         parentsToChildrenMap.forEach((parent,children)->{
             if(allTechnologyNodes.contains(parent)) {
-        //        System.out.println("Parent: " + parent);
+                System.out.println("Parent: " + parent);
                 for (String child : children) {
                     if (allTechnologyNodes.contains(child)) {
-        //                System.out.println("\t\tChild: " + child);
+                        System.out.println("\t\tChild: " + child);
                     }
                 }
             }
