@@ -45,20 +45,78 @@ public class Simulation {
 
     public Card nextCard() {
         if (deckIdx.get() >= deck.size()) {
-            shuffleDeck();
+            throw new RuntimeException("No more cards!");
         }
         Card card = deck.get(deckIdx.get());
         deckIdx.getAndIncrement();
         return card;
     }
 
-    public void dealHands() {
+    public void dealHands(Card[] givenHand, Card[] flop, Card turn, Card river) {
         shuffleDeck();
+        if(givenHand!=null) {
+            for(Card card : givenHand) {
+                if(!deck.remove(card)) {
+                    throw new RuntimeException("Could not find card: "+card.toString());
+                }
+                deck.add(0, card);
+            }
+        }
+        // add all additional stuff to the end
+        {
+            if (flop != null) {
+                for (Card card : flop) {
+                    if (!deck.remove(card)) {
+                        throw new RuntimeException("Could not find card: " + card.toString());
+                    }
+                    deck.add(card);
+                }
+            }
+            if(turn != null) {
+                if(!deck.remove(turn)) {
+                    throw new RuntimeException("Could not find card: "+turn.toString());
+                }
+                deck.add(turn);
+            }
+            if(river != null) {
+                if(!deck.remove(river)) {
+                    throw new RuntimeException("Could not find card: "+river.toString());
+                }
+                deck.add(river);
+            }
+        }
+        // now insert into place
+        if(flop != null) {
+            int indexFlop = numPlayers * 2 + 1;
+            for (Card card : flop) {
+                if(!deck.remove(card)) {
+                    throw new RuntimeException("Could not find card: "+card.toString());
+                }
+                deck.add(indexFlop, card);
+            }
+        }
+        if(turn != null) {
+            int indexTurn = numPlayers * 2 + 1 + 3 + 1;
+            if(!deck.remove(turn)) {
+                throw new RuntimeException("Could not find card: "+turn.toString());
+            }
+            deck.add(indexTurn, turn);
+        }
+        if(river != null) {
+            int indexRiver = numPlayers * 2 + 1 + 3 + 1 + 1 + 1;
+            if(!deck.remove(river)) {
+                throw new RuntimeException("Could not find card: "+river.toString());
+            }
+            deck.add(indexRiver, river);
+        }
         hands = new Hand[numPlayers];
         for (int i = 0; i < numPlayers; i++) {
             Hand hand = new Hand();
             hand.cards = new Card[]{nextCard(), nextCard()};
             hands[i] = hand;
+        }
+        if(deck.size()!=52) {
+            throw new RuntimeException("Invalid deck size: "+deck.size());
         }
     }
 
@@ -68,13 +126,13 @@ public class Simulation {
     }
 
     public void showTurn() {
-        nextCard();
+        nextCard(); // burn
         turn = nextCard();
     }
 
 
     public void showRiver() {
-        nextCard();
+        nextCard(); // burn
         river = nextCard();
     }
 
@@ -83,6 +141,7 @@ public class Simulation {
     public Pair<Hand, Double> simulateHand() {
         Hand bestHand = null;
         double bestScore = 0;
+        boolean currentTie = false;
         for (Hand hand : hands) {
             Card[] cards = new Card[]{hand.cards[0], hand.cards[1], flop[0], flop[1], flop[2]};
             Card[] cardsClone = cards.clone();
@@ -103,10 +162,15 @@ public class Simulation {
                 cards[i] = cardsClone[i];
             }
             if (score > bestScore) {
+                currentTie = Math.abs(score-bestScore) < 0.000001;
                 bestScore = score;
                 bestHand = new Hand();
                 bestHand.cards = hand.cards;
             }
+        }
+        if (currentTie) {
+            System.out.println("TIE!");
+            return null;
         }
         //System.out.println("Best hand "+bestScore+": "+bestHand);
         return new Pair<>(bestHand, bestScore);
@@ -274,12 +338,12 @@ public class Simulation {
     public static double probabilityWinningHand(Hand hand, Card[] flop, Card turn, Card river, int numPlayers, int numSimulations) {
         AtomicLong wins = new AtomicLong(0L);
         AtomicLong relevantTotal = new AtomicLong(0L);
-        int numThreads = 10;
+        int numThreads = 12;
         ExecutorService service = Executors.newFixedThreadPool(numThreads);
         for (int i = 0; i < numSimulations; i++) {
             service.execute(()-> {
                 Simulation simulation = new Simulation(numPlayers);
-                simulation.dealHands();
+                simulation.dealHands(hand.cards, flop, turn, river);
                 boolean foundHand = false;
                 for (Hand h : simulation.hands) {
                     if (twoCardHandsAreEqual(h, hand)) {
@@ -292,39 +356,42 @@ public class Simulation {
                     simulation.showTurn();
                     simulation.showRiver();
                     Pair<Hand, Double> best = simulation.simulateHand();
-                    Card[] flopActual = simulation.flop;
-                    Card turnActual = simulation.turn;
-                    Card riverActual = simulation.river;
                     boolean foundShow = true;
-                    if (flop != null) {
-                        foundShow = false;
-                        Hand flopHand = new Hand();
-                        flopHand.cards = flop;
-                        Hand flopActualHand = new Hand();
-                        flopActualHand.cards = flopActual;
-                        if (threeCardHandsAreEqual(flopHand, flopActualHand)) {
-                            foundShow = true;
+                    if(best!=null) {
+                        Card[] flopActual = simulation.flop;
+                        Card turnActual = simulation.turn;
+                        Card riverActual = simulation.river;
+                        if (flop != null) {
+                            foundShow = false;
+                            Hand flopHand = new Hand();
+                            flopHand.cards = flop;
+                            Hand flopActualHand = new Hand();
+                            flopActualHand.cards = flopActual;
+                            if (threeCardHandsAreEqual(flopHand, flopActualHand)) {
+                                foundShow = true;
+                            }
+                        }
+                        if (foundShow && turn != null) {
+                            foundShow = false;
+                            if (turn.equals(turnActual)) {
+                                foundShow = true;
+                            }
+                        }
+                        if (foundShow && river != null) {
+                            foundShow = false;
+                            if (river.equals(riverActual)) {
+                                foundShow = true;
+                            }
                         }
                     }
-                    if (foundShow && turn != null) {
-                        foundShow = false;
-                        if (turn.equals(turnActual)) {
-                            foundShow = true;
-                        }
-                    }
-                    if (foundShow && river != null) {
-                        foundShow = false;
-                        if (river.equals(riverActual)) {
-                            foundShow = true;
-                        }
-                    }
-
                     if (foundShow) {
                         relevantTotal.getAndIncrement();
-                        if (twoCardHandsAreEqual(hand, best.getFirst())) {
+                        if (best!= null && twoCardHandsAreEqual(hand, best.getFirst())) {
                             // close enough
                             wins.getAndIncrement();
                         }
+                    } else {
+                       System.out.println("NOT FOUND");
                     }
 
                 }
@@ -350,17 +417,23 @@ public class Simulation {
         Card flop2 = new Card();
         Card flop3 = new Card();
         flop1.num=2;
-        flop2.num=7;
-        flop3.num=9;
+        flop2.num=3;
+        flop3.num=2;
         flop1.suit='H';
-        flop2.suit='C';
-        flop3.suit='H';
+        flop2.suit='S';
+        flop3.suit='S';
         Card[] flop = new Card[]{
                 flop1,
                 flop2,
                 flop3,
         };
-        flop = null;
+        Card turn = new Card();
+        turn.num = 8;
+        turn.suit = 'S';
+        Card river = new Card();
+        river.num = 12;
+        river.suit = 'S';
+        //flop = null;
         for (int i = 1; i <= 13; i++) {
             for (char c : new char[]{'C'}) {
                 for (int j = 1; j <= 13; j++) {
@@ -377,8 +450,8 @@ public class Simulation {
                                     card2
                             };
 
-                            for (int numSimulations : Arrays.asList(1000000)) {
-                                double prob = probabilityWinningHand(hand, flop, null, null,2, numSimulations);
+                            for (int numSimulations : Arrays.asList(50000)) {
+                                double prob = probabilityWinningHand(hand, flop, turn, null,5, numSimulations);
                                 System.out.println("Prob " + hand.toString() + " (n=" + numSimulations + "): " + prob);
                             }
                         }
