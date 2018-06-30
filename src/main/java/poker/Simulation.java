@@ -221,8 +221,7 @@ public class Simulation {
     }
 
 
-    public int largestNOfAKind(Card[] cards) {
-        Map<Integer, Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e -> e.num, Collectors.counting()));
+    public int largestNOfAKind(Map<Integer,Long> counts) {
         return counts.values().stream().mapToInt(d -> d.intValue()).max().orElse(1);
     }
 
@@ -241,14 +240,14 @@ public class Simulation {
         boolean straight = containsStraight(cards);
         Map<Integer, Long> counts = Stream.of(cards).collect(Collectors.groupingBy(e -> e.num, Collectors.counting()));
         Map<Long, List<Integer>> countToCardIdx = counts.entrySet().stream().collect(Collectors.groupingBy(e -> e.getValue(), Collectors.mapping(e -> e.getKey(), Collectors.toCollection(ArrayList::new))));
-        int[] sortedCardNumbers = counts.keySet().stream().mapToInt(e -> e == 1 ? 14 : e).sorted().toArray();
+        int[] sortedCardNumbers = Stream.of(cards).mapToInt(e -> e.num == 1 ? 14 : e.num).sorted().toArray();
         double highCardBoost = IntStream.range(0, sortedCardNumbers.length).mapToDouble(i -> ((double) sortedCardNumbers[sortedCardNumbers.length - 1 - i]) / Math.pow(15.0, i + 1)).sum();
         double highCardBoostStraight = 0d;
         double score = 0d;
         if (straight) {
             // check whether ace is low
             if (counts.containsKey(1) && counts.containsKey(2)) {
-                int[] sortedCardNumbersAceLow = counts.keySet().stream().mapToInt(e -> e).sorted().toArray();
+                int[] sortedCardNumbersAceLow = Stream.of(cards).mapToInt(e -> e.num).sorted().toArray();
                 highCardBoostStraight = IntStream.range(0, sortedCardNumbersAceLow.length).mapToDouble(i -> ((double) sortedCardNumbersAceLow[sortedCardNumbersAceLow.length - 1 - i]) / Math.pow(15.0, i + 1)).sum();
             } else {
                 highCardBoostStraight = highCardBoost;
@@ -258,12 +257,14 @@ public class Simulation {
             // straight flush!
             // check whether ace is high card
             score = Math.max(score, 8d + highCardBoostStraight);
+            // highest score
+            return score;
         } else if (flush) {
             score = Math.max(score, 5d + highCardBoost);
         } else if (straight) {
             score = Math.max(score, 4d + highCardBoostStraight);
         }
-        int largestN = largestNOfAKind(cards);
+        int largestN = largestNOfAKind(counts);
         if (largestN == 4) {
             // 4 of a kind
             int cardIdx = countToCardIdx.get(4L).get(0);
@@ -272,6 +273,8 @@ public class Simulation {
             if (cardIdx2 == 1) cardIdx2 = 14;
             double bonus = ((double) cardIdx) / 15.0 + ((double) cardIdx2) / (15.0 * 15.0);
             score = Math.max(score, 7d + bonus);
+            // second highest
+            return score;
         } else if (largestN == 3) {
             // check for full house
             boolean fullHouse = containsFullHouse(cards, counts);
@@ -282,7 +285,7 @@ public class Simulation {
                 if (cardIdx2 == 1) cardIdx2 = 14;
                 double bonus = ((double) cardIdx) / 15.0 + ((double) cardIdx2) / (15.0 * 15.0);
                 score = Math.max(score, 6d + bonus);
-
+                return score;
             } else {
                 // 3 of a kind
                 // single pair
@@ -292,6 +295,7 @@ public class Simulation {
                 double nonPairBoost = IntStream.range(0, sortedNonPairs.length).mapToDouble(i -> ((double) sortedNonPairs[sortedNonPairs.length - 1 - i]) / Math.pow(15.0, i + 1)).sum();
                 double bonus = ((double) tripleIdx) / 15.0 + nonPairBoost / 15.0;
                 score = Math.max(score, 3d + bonus);
+                return score;
             }
         } else if (largestN == 2) {
             // check 2 pair
@@ -344,56 +348,46 @@ public class Simulation {
             service.execute(()-> {
                 Simulation simulation = new Simulation(numPlayers);
                 simulation.dealHands(hand.cards, flop, turn, river);
-                boolean foundHand = false;
-                for (Hand h : simulation.hands) {
-                    if (twoCardHandsAreEqual(h, hand)) {
-                        foundHand = true;
-                        break;
+                simulation.showFlop();
+                simulation.showTurn();
+                simulation.showRiver();
+                Pair<Hand, Double> best = simulation.simulateHand();
+                boolean foundShow = true;
+                if(best!=null) {
+                    Card[] flopActual = simulation.flop;
+                    Card turnActual = simulation.turn;
+                    Card riverActual = simulation.river;
+                    if (flop != null) {
+                        foundShow = false;
+                        Hand flopHand = new Hand();
+                        flopHand.cards = flop;
+                        Hand flopActualHand = new Hand();
+                        flopActualHand.cards = flopActual;
+                        if (threeCardHandsAreEqual(flopHand, flopActualHand)) {
+                            foundShow = true;
+                        }
+                    }
+                    if (foundShow && turn != null) {
+                        foundShow = false;
+                        if (turn.equals(turnActual)) {
+                            foundShow = true;
+                        }
+                    }
+                    if (foundShow && river != null) {
+                        foundShow = false;
+                        if (river.equals(riverActual)) {
+                            foundShow = true;
+                        }
                     }
                 }
-                if (foundHand) {
-                    simulation.showFlop();
-                    simulation.showTurn();
-                    simulation.showRiver();
-                    Pair<Hand, Double> best = simulation.simulateHand();
-                    boolean foundShow = true;
-                    if(best!=null) {
-                        Card[] flopActual = simulation.flop;
-                        Card turnActual = simulation.turn;
-                        Card riverActual = simulation.river;
-                        if (flop != null) {
-                            foundShow = false;
-                            Hand flopHand = new Hand();
-                            flopHand.cards = flop;
-                            Hand flopActualHand = new Hand();
-                            flopActualHand.cards = flopActual;
-                            if (threeCardHandsAreEqual(flopHand, flopActualHand)) {
-                                foundShow = true;
-                            }
-                        }
-                        if (foundShow && turn != null) {
-                            foundShow = false;
-                            if (turn.equals(turnActual)) {
-                                foundShow = true;
-                            }
-                        }
-                        if (foundShow && river != null) {
-                            foundShow = false;
-                            if (river.equals(riverActual)) {
-                                foundShow = true;
-                            }
-                        }
+                if (foundShow) {
+                    relevantTotal.getAndIncrement();
+                    if (best!= null && twoCardHandsAreEqual(hand, best.getFirst())) {
+                        // close enough
+                        wins.getAndIncrement();
                     }
-                    if (foundShow) {
-                        relevantTotal.getAndIncrement();
-                        if (best!= null && twoCardHandsAreEqual(hand, best.getFirst())) {
-                            // close enough
-                            wins.getAndIncrement();
-                        }
-                    } else {
-                       System.out.println("NOT FOUND");
-                    }
-
+                } else {
+                   System.out.println("NOT FOUND");
                 }
             });
         }
