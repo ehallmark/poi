@@ -102,18 +102,19 @@ public class CreateShapefiles {
         //layer.getBounds()
 
         BufferedWriter writer = new BufferedWriter(new FileWriter(new File("/home/ehallmark/Downloads/poi.csv")));
-        writer.write("Name,LatitudeRad,LongitudeRad,Links,Categories\n");
+        writer.write("name,latitude_radian,longitude_radian,num_links,links,num_categories,categories\n");
         writer.flush();
         pointOfInterests.forEach(poi->{
             double latitude = toRangeRadian(poi.getLatitude());
             double longitude = toRangeRadian(poi.getLongitude());
             String name = poi.getTitle().replace("\"", "");
             int number = poi.getLinks()==null?0:poi.getLinks().size();
+            int numCategories = poi.getCategories()==null?0:poi.getCategories().size();
             String categories = poi.getCategories()==null ? "": String.join("; ",poi.getCategories()).replace("\"","");
             String links = poi.getLinks()==null ? "": String.join("; ",poi.getLinks()).replace("\"","");
             try {
                 System.out.println("POI: "+name);
-                writer.write("\""+name+"\","+latitude+","+longitude+",\""+links+"\",\""+categories+"\"\n");
+                writer.write("\""+name+"\","+latitude+","+longitude+","+number+",\""+links+"\","+numCategories+",\""+categories+"\"\n");
                 writer.flush();
             } catch(Exception e) {
                 e.printStackTrace();
