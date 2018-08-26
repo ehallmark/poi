@@ -1,5 +1,6 @@
 package main.java.gis;
 
+import au.com.bytecode.opencsv.CSVWriter;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
@@ -22,10 +23,7 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.Serializable;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -103,11 +101,23 @@ public class CreateShapefiles {
         //Layer layer = DrawShapefiles.addLayerToMap(map,new File("/home/ehallmark/Downloads/groads-v1-americas.shp/groads-v1-americas.shp"));
         //layer.getBounds()
 
+        BufferedWriter writer = new BufferedWriter(new FileWriter(new File("/home/ehallmark/Downloads/poi.csv")));
+        writer.write("Name,LatitudeRad,LongitudeRad,Links,Categories\n");
+        writer.flush();
         pointOfInterests.forEach(poi->{
             double latitude = toRangeRadian(poi.getLatitude());
             double longitude = toRangeRadian(poi.getLongitude());
-            String name = poi.getTitle();
+            String name = poi.getTitle().replace("\"", "");
             int number = poi.getLinks()==null?0:poi.getLinks().size();
+            String categories = poi.getCategories()==null ? "": String.join("; ",poi.getCategories()).replace("\"","");
+            String links = poi.getLinks()==null ? "": String.join("; ",poi.getLinks()).replace("\"","");
+            try {
+                System.out.println("POI: "+name);
+                writer.write("\""+name+"\","+latitude+","+longitude+",\""+links+"\",\""+categories+"\"\n");
+                writer.flush();
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
 
             /* Longitude (= x coord) first ! */
             Point point = geometryFactory.createPoint(new Coordinate(longitude, latitude));
@@ -118,6 +128,8 @@ public class CreateShapefiles {
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         });
+        writer.flush();
+        writer.close();
 
         /*
          * Get an output file name and create the new shapefile

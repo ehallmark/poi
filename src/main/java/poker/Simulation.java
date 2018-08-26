@@ -427,6 +427,8 @@ public class Simulation {
         Card river = new Card();
         river.num = 12;
         river.suit = 'S';
+        turn = null;
+        river = null;
         //flop = null;
         for (int i = 1; i <= 13; i++) {
             for (char c : new char[]{'C'}) {
@@ -444,7 +446,7 @@ public class Simulation {
                                     card2
                             };
 
-                            for (int numSimulations : Arrays.asList(50000)) {
+                            for (int numSimulations : Arrays.asList(1000)) {
                                 double prob = probabilityWinningHand(hand, flop, turn, null,5, numSimulations);
                                 System.out.println("Prob " + hand.toString() + " (n=" + numSimulations + "): " + prob);
                             }
