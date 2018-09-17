@@ -2,7 +2,6 @@ package main.java.reddit;
 
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -129,6 +128,35 @@ public class Postgres {
             }
         }
         rs.close();
+        ps.close();
+    }
+
+    public static void iterateForControversialResponses(Consumer<Comment> consumer, int sampling) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("select c.id,c.parent_id,c.subreddit_id,c.link_id,c.text,c.score,c.ups,c.author,c.controversiality,p.id,p.parent_id,p.subreddit_id,p.link_id,p.text,p.score,p.ups,p.author,p.controversiality from comments as c join comments a p on (c.parent_id=p.id) where controversiality=? order by random() limit ?");
+        ps.setFetchSize(100);
+        for(int controversial : new int[]{0, 1}) {
+            ps.setInt(1, controversial);
+            ps.setInt(2, sampling);
+            ResultSet rs = ps.executeQuery();
+            AtomicLong cnt = new AtomicLong(0);
+            while (rs.next()) {
+                Comment comment = new Comment();
+                comment.setId(rs.getString(1));
+                comment.setParent_id(rs.getString(2));
+                comment.setSubreddit_id(rs.getString(3));
+                comment.setLink_id(rs.getString(4));
+                comment.setBody(rs.getString(5));
+                comment.setScore(rs.getInt(6));
+                comment.setUps(rs.getInt(7));
+                comment.setAuthor(rs.getString(8));
+                comment.setControversiality(rs.getInt(9));
+                consumer.accept(comment);
+                if (cnt.getAndIncrement() % 10000 == 9999) {
+                    System.out.println("Iterated over: " + cnt.get() + " out of " + sampling);
+                }
+            }
+            rs.close();
+        }
         ps.close();
     }
 
