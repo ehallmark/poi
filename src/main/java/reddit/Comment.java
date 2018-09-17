@@ -24,7 +24,8 @@ public class Comment {
     private String author;
     @Getter @Setter
     private String parent_body;
-
+    @Getter @Setter
+    private Comment parentComment;
     @Override
     public String toString() {
         return "Comment "+id+"\n\tAuthor "+author+"\n\tParent "+parent_id+"\n\tSubreddit "+subreddit_id+"\n\tLink "+link_id+"\n\tBody: "+body+"\n\tControversial "+controversiality+"\n\tUps "+ups+"\n\tScore "+score;

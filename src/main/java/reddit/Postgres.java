@@ -132,7 +132,7 @@ public class Postgres {
     }
 
     public static void iterateForControversialResponses(Consumer<Comment> consumer, int sampling) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement("select c.id,c.parent_id,c.subreddit_id,c.link_id,c.text,c.score,c.ups,c.author,c.controversiality,p.id,p.parent_id,p.subreddit_id,p.link_id,p.text,p.score,p.ups,p.author,p.controversiality from comments as c join comments a p on (c.parent_id=p.id) where controversiality=? order by random() limit ?");
+        PreparedStatement ps = conn.prepareStatement("select id,parent_id,subreddit_id,link_id,text,score,ups,author,controversiality,parent_link_id,parent_text,parent_score,parent_ups,parent_author,parent_controversiality from comment_comments where controversiality=? order by random() limit ?");
         ps.setFetchSize(100);
         for(int controversial : new int[]{0, 1}) {
             ps.setInt(1, controversial);
@@ -150,6 +150,17 @@ public class Postgres {
                 comment.setUps(rs.getInt(7));
                 comment.setAuthor(rs.getString(8));
                 comment.setControversiality(rs.getInt(9));
+                Comment parentComment = new Comment();
+                parentComment.setId(rs.getString(2));
+                parentComment.setParent_id(null);
+                parentComment.setSubreddit_id(rs.getString(3));
+                parentComment.setLink_id(rs.getString(10));
+                parentComment.setBody(rs.getString(11));
+                parentComment.setScore(rs.getInt(12));
+                parentComment.setUps(rs.getInt(13));
+                parentComment.setAuthor(rs.getString(14));
+                parentComment.setControversiality(rs.getInt(15));
+                comment.setParentComment(parentComment);
                 consumer.accept(comment);
                 if (cnt.getAndIncrement() % 10000 == 9999) {
                     System.out.println("Iterated over: " + cnt.get() + " out of " + sampling);
