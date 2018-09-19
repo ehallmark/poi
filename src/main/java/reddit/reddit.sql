@@ -47,10 +47,5 @@ create index reddit_comment_comments_parent_id_idx on comment_comments (parent_i
 create index reddit_comment_comments_subreddit_id_idx on comment_comments (subreddit_id);
 
 
-\copy (
-
-    select * from comment_comments where score < 0 or controversiality > 0 order by random() limit 5000000
-    union all select * from comment_comments where score >= 0 and score < 10 and controversiality = 0 order by random() limit 5000000
-    union all select * from comment_comments where score > 10 and controversiality = 0 order by random() limit 5000000
-
-) to '/home/ehallmark/Downloads/comment_comments.csv' delimiter ',' csv header;
+\copy (select * from comment_comments where score < 1 or controversiality > 0 order by random() limit 10000000) to /home/ehallmark/Downloads/comment_comments0.csv delimiter ',' csv header;
+\copy (select * from comment_comments where score > 50 and controversiality = 0 order by random() limit 10000000) to /home/ehallmark/Downloads/comment_comments1.csv delimiter ',' csv header;
