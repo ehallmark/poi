@@ -40,8 +40,17 @@ create table comment_comments (
 insert into comment_comments (
     select c.id,c.parent_id,c.subreddit_id,c.link_id,c.text,c.score,c.ups,c.author,c.controversiality,
         p.link_id,p.text,p.score,p.ups,p.author,p.controversiality
-    from comments as c join comments as p on (c.parent_id=p.id)
+    from comments as c join comments as p on (c.parent_id='t1_'||p.id)
 );
 
 create index reddit_comment_comments_parent_id_idx on comment_comments (parent_id);
 create index reddit_comment_comments_subreddit_id_idx on comment_comments (subreddit_id);
+
+
+\copy (
+
+    select * from comment_comments where score < 0 or controversiality > 0 order by random() limit 5000000
+    union all select * from comment_comments where score >= 0 and score < 10 and controversiality = 0 order by random() limit 5000000
+    union all select * from comment_comments where score > 10 and controversiality = 0 order by random() limit 5000000
+
+) to '/home/ehallmark/Downloads/comment_comments.csv' delimiter ',' csv header;

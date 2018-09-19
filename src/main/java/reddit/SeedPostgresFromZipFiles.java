@@ -22,7 +22,8 @@ public class SeedPostgresFromZipFiles {
         final boolean debug = false;
 
         // download missing files from http://files.pushshift.io/reddit/comments/
-        LocalDate startDate = LocalDate.of(2015,1,1); // END LocalDate.of(2005,12,1);
+        LocalDate startDate = //LocalDate.of(2005,1,1);
+            LocalDate.of(2012,1,1);
         final String urlPrefix = "http://files.pushshift.io/reddit/comments/";
         List<LocalDate> dates = Collections.synchronizedList(new ArrayList<>());
         while(startDate.isBefore(LocalDate.now())) {
