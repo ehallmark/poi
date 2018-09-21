@@ -61,10 +61,26 @@ create table comments_words (
 
 insert into comments_words (
     select word, count(*),
-    sum(case when controversiality = 1 or score < 0 then 1 else 0 end),
-    sum(case when controversiality != 1 and score > 0 then 1 else 0 end)
+    sum(case when controversiality != 1 and score > 0 then 1 else 0 end),
+    sum(case when controversiality = 1 or score < 0 then 1 else 0 end)
     from comment_comments, unnest(string_to_array(regexp_replace(lower(text), '[^a-z ]', ' ', 'g'),' ')) as w(word)
     group by word
     having count(*) > 100
 );
+
+
+create table words (
+    word text primary key
+);
+
+insert into words (
+    select word from comments_words order by pos_docs_appeared_in/docs_appeared_in limit 5000
+);
+
+
+insert into words (
+    select word from comments_words order by neg_docs_appeared_in/docs_appeared_in limit 5000
+);
+
+\copy (select * from words) to /home/ehallmark/Downloads/words.csv delimiter ',' csv header;
 
