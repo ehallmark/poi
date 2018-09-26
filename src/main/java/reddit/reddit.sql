@@ -48,8 +48,8 @@ create index reddit_comment_comments_parent_id_idx on comment_comments (parent_i
 create index reddit_comment_comments_subreddit_id_idx on comment_comments (subreddit_id);
 
 
-\copy (select * from comment_comments order by controversiality desc, score asc, random() limit 1100000) to /home/ehallmark/Downloads/comment_comments0.csv delimiter ',' csv header;
-\copy (select * from comment_comments where controversiality = 0 order by score desc, random() limit 1100000) to /home/ehallmark/Downloads/comment_comments1.csv delimiter ',' csv header;
+\copy (select * from comment_comments order by score asc, random() limit 2000000) to /home/ehallmark/Downloads/comment_comments0.csv delimiter ',' csv header;
+\copy (select * from comment_comments order by score desc, random() limit 2000000) to /home/ehallmark/Downloads/comment_comments1.csv delimiter ',' csv header;
 
 
 create table comments_words (

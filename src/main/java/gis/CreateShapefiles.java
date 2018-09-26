@@ -1,9 +1,7 @@
 package main.java.gis;
 
 import au.com.bytecode.opencsv.CSVWriter;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
+
 import main.java.predict.Database;
 import main.java.predict.PointOfInterest;
 import org.geotools.data.DefaultTransaction;
@@ -20,6 +18,9 @@ import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
